@@ -1,0 +1,58 @@
+package inu.appcenter.walkman.di
+
+
+import android.content.Context
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import inu.appcenter.walkman.data.datasource.DriveServiceHelper
+import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
+import inu.appcenter.walkman.data.repository.StorageRepositoryImpl
+import inu.appcenter.walkman.data.repository.UserRepositoryImpl
+import inu.appcenter.walkman.domain.repository.SensorRepository
+import inu.appcenter.walkman.domain.repository.StorageRepository
+import inu.appcenter.walkman.domain.repository.UserRepository
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+
+    @Provides
+    @Singleton
+    fun provideDriveServiceHelper(
+        @ApplicationContext context: Context
+    ): DriveServiceHelper {
+        return DriveServiceHelper(
+            context = context,
+            folderId = "1wNI4nJkAfZJ0Rzz_VEOsbBPsA36C7Vrl" // 구글 드라이브 폴더 ID
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideSensorRepository(
+        @ApplicationContext context: Context
+    ): SensorRepository {
+        return SensorRepositoryImpl(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(
+        @ApplicationContext context: Context
+    ): UserRepository {
+        return UserRepositoryImpl(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideStorageRepository(
+        @ApplicationContext context: Context,
+        driveServiceHelper: DriveServiceHelper
+    ): StorageRepository {
+        return StorageRepositoryImpl(context, driveServiceHelper)
+    }
+}
