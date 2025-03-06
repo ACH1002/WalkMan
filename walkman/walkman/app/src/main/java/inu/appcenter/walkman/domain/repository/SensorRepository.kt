@@ -12,4 +12,5 @@ interface SensorRepository {
     suspend fun saveReading(reading: SensorReading)
     fun clearReadings()
     fun isRecording(): Flow<Boolean>
+    suspend fun cancelRecording()
 }

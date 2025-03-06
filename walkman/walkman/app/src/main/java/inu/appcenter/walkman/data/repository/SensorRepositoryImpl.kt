@@ -346,4 +346,16 @@ class SensorRepositoryImpl @Inject constructor(
         _currentReading.value = null
         currentLocation = null
     }
+
+    override suspend fun cancelRecording() {
+        // 센서 리스너 해제 (stopRecording과 동일)
+        sensorManager.unregisterListener(this)
+        locationManager.removeUpdates(this)
+
+        // 세션 정보 업데이트하지 않고 상태만 변경
+        _isRecording.value = false
+
+        // 수집된 데이터 버리기
+        clearReadings()
+    }
 }

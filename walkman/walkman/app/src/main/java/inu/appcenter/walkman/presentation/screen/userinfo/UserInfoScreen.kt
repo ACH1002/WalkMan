@@ -141,7 +141,7 @@ fun UserInfoScreen(
                     .padding(bottom = 16.dp),
                 maxLines = 1,
                 keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Done
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }

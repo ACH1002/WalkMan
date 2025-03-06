@@ -129,6 +129,26 @@ class RecordingViewModel @Inject constructor(
             )
         }
     }
+
+    fun cancelRecording() {
+        viewModelScope.launch {
+            try {
+                // 데이터 저장 없이 센서 데이터 수집만 중지
+                sensorRepository.cancelRecording()
+
+                _uiState.update { it.copy(
+                    isRecording = false,
+                    isUploading = false
+                ) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(
+                    isRecording = false,
+                    isUploading = false,
+                    errorMessage = "측정이 중단되었습니다."
+                ) }
+            }
+        }
+    }
 }
 
 // UI 상태 클래스

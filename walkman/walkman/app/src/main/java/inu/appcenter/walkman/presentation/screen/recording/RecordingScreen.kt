@@ -1,25 +1,40 @@
 package inu.appcenter.walkman.presentation.screen.recording
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.ui.StyledPlayerView
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordingScreen(
@@ -29,35 +44,191 @@ fun RecordingScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val currentReading by viewModel.currentReading.collectAsState()
+    val context = LocalContext.current
 
     var inputText by remember { mutableStateOf("") }
     var recordingTimeElapsed by remember { mutableStateOf(0) }
-    val recordingTimeMax = 30 // 최대 녹화 시간(초)
+    val recordingTimeMax = 90 // 최대 녹화 시간(초)
 
-    // 녹화 시간 카운터
-    LaunchedEffect(uiState.isRecording) {
-        recordingTimeElapsed = 0
+    // 측정이 90초 동안 진행되었는지 추적
+    var fullMeasurementCompleted by remember { mutableStateOf(false) }
+
+    // 중간에 측정 중단했는지 추적
+    var measurementCancelled by remember { mutableStateOf(false) }
+
+    // 센서 데이터 포맷팅 캐싱
+    val sensorDataFormatted = remember(currentReading) {
+        currentReading?.let { reading ->
+            SensorDataFormatted(
+                accX = String.format("%.2f", reading.accX),
+                accY = String.format("%.2f", reading.accY),
+                accZ = String.format("%.2f", reading.accZ),
+                gyroX = String.format("%.2f", reading.gyroX),
+                gyroY = String.format("%.2f", reading.gyroY),
+                gyroZ = String.format("%.2f", reading.gyroZ)
+            )
+        }
+    }
+
+    // 비디오 플레이어 상태
+    var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
+
+    // 코루틴 스코프 선언 위치 이동
+    val scope = rememberCoroutineScope()
+
+    // 진동 함수
+    val vibratePhone = {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // 측정 완료 진동 패턴: 500ms 진동, 300ms 대기, 500ms 진동
+            val vibrationEffect = VibrationEffect.createWaveform(
+                longArrayOf(0, 500, 300, 500), -1
+            )
+            vibrator.vibrate(vibrationEffect)
+        } else {
+            // API 26 미만에서는 deprecated API 사용
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(longArrayOf(0, 500, 300, 500), -1)
+        }
+    }
+
+    // 사용자 정의 StopRecording 함수
+    // 이 함수는 측정 상태에 따라 데이터를 저장할지 결정
+    val customStopRecording = { shouldUpload: Boolean ->
         if (uiState.isRecording) {
-            while (recordingTimeElapsed < recordingTimeMax) {
-                delay(1000) // 1초 대기
-                recordingTimeElapsed++
+            if (shouldUpload) {
+                // 90초 측정 완료: 진동 피드백 실행
+                vibratePhone()
+
+                // 진동이 완료될 시간을 확보하기 위해 코루틴 내에서 처리
+                scope.launch {
+                    // 진동이 충분히 울릴 수 있는 시간 확보 (대략 1.5초)
+                    delay(1500)
+
+                    // 실제 stopRecording 호출 (업로드 시작)
+                    viewModel.stopRecording()
+
+                    // 이제 화면 이동은 성공 메시지가 표시될 때만 수행
+                    // (LaunchedEffect(uiState.successMessage)에서 처리됨)
+                }
+            } else {
+                // 업로드하지 않고 중단
+                scope.launch {
+                    viewModel.cancelRecording()
+                    measurementCancelled = true
+                }
             }
-            // 시간이 다 되면 자동 중지
-            if (recordingTimeElapsed >= recordingTimeMax) {
-                viewModel.stopRecording()
+
+            // 녹화 중지 시 영상도 일시정지
+            if (mode == RecordingMode.VIDEO) {
+                exoPlayer?.pause()
             }
         }
     }
 
-    // 성공 또는 오류 메시지 표시
-    LaunchedEffect(uiState.successMessage, uiState.errorMessage) {
-        if (uiState.successMessage != null || uiState.errorMessage != null) {
-            delay(3000) // 3초 후 메시지 사라짐
+    // 뒤로 가기 핸들러
+    val handleBackPress: () -> Unit = {
+        // 녹화 중이면 중단 (false = 업로드 하지 않음)
+        if (uiState.isRecording) {
+            customStopRecording(false)
+        }
+
+        // 비디오 재생 중지 및 해제
+        exoPlayer?.pause()
+
+        // 뒤로 가기 실행
+        onNavigateBack()
+    }
+
+    // 녹화 시간 카운터
+    LaunchedEffect(uiState.isRecording) {
+        if (uiState.isRecording) {
+            // 측정 시작 시 상태 초기화
+            recordingTimeElapsed = 0
+            fullMeasurementCompleted = false
+            measurementCancelled = false
+
+            while (recordingTimeElapsed < recordingTimeMax && uiState.isRecording) {
+                delay(1000) // 1초 대기
+                recordingTimeElapsed++
+            }
+
+            // 시간이 다 되면 자동 중지 및 업로드
+            if (recordingTimeElapsed >= recordingTimeMax && uiState.isRecording) {
+                fullMeasurementCompleted = true
+                customStopRecording(true) // true = 업로드 실행, 진동 후 업로드 완료 시 이동
+            }
+        }
+    }
+
+    // 수동으로 측정을 중지했을 때 처리
+    val handleStopRecording = {
+        if (uiState.isRecording) {
+            if (recordingTimeElapsed >= recordingTimeMax) {
+                // 90초 이상 측정 완료: 업로드 실행
+                fullMeasurementCompleted = true
+                customStopRecording(true)
+            } else {
+                // 중간에 중단: 업로드 하지 않음
+                measurementCancelled = true
+                customStopRecording(false)
+            }
+        }
+    }
+
+    // 성공 메시지 감지를 위한 효과
+    LaunchedEffect(uiState.successMessage) {
+        if (uiState.successMessage != null) {
+            // 성공 메시지가 표시되면 - 데이터 업로드가 완료된 상태
+            // 사용자가 성공 메시지를 볼 수 있도록 충분한 시간 제공
+            delay(2000) // 2초 동안 성공 메시지 표시
+            viewModel.clearMessages()
+            onNavigateBack() // 데이터 업로드 완료 후 RecordModeScreen으로 이동
+        }
+    }
+
+    // 오류 메시지 처리
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null) {
+            delay(3000) // 오류 메시지는 3초 후 사라짐
             viewModel.clearMessages()
         }
     }
 
-    val scope = rememberCoroutineScope()
+    // 비디오 플레이어 초기화
+    LaunchedEffect(Unit) {
+        if (mode == RecordingMode.VIDEO) {
+            exoPlayer = ExoPlayer.Builder(context).build().apply {
+                val videoUri = Uri.parse("android.resource://${context.packageName}/raw/documentary_sample")
+                val mediaItem = MediaItem.fromUri(videoUri)
+                setMediaItem(mediaItem)
+                prepare()
+                repeatMode = Player.REPEAT_MODE_ALL // 반복 재생
+                volume = 0f // 볼륨 설정
+            }
+        }
+    }
+
+    // 컴포넌트가 dispose될 때 ExoPlayer 자원 해제
+    DisposableEffect(Unit) {
+        onDispose {
+            // 녹화 중이면 중단 (업로드 하지 않음)
+            if (uiState.isRecording) {
+                customStopRecording(false)
+            }
+            // ExoPlayer 해제
+            exoPlayer?.release()
+            exoPlayer = null
+        }
+    }
+
 
     Scaffold(
         topBar = {
@@ -65,7 +236,7 @@ fun RecordingScreen(
                 title = {
                     Text(
                         text = when(mode) {
-                            RecordingMode.POCKET -> "주머니에 넣고 측정"
+                            RecordingMode.POCKET -> "바지 주머니에 넣고 측정"
                             RecordingMode.VIDEO -> "영상 보면서 측정"
                             RecordingMode.TEXT -> "걸으면서 텍스트 입력"
                         },
@@ -74,7 +245,7 @@ fun RecordingScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = handleBackPress) {
                         Icon(
                             Icons.Default.ArrowBack,
                             contentDescription = "뒤로 가기",
@@ -113,26 +284,59 @@ fun RecordingScreen(
                 ) {
                     when(mode) {
                         RecordingMode.VIDEO -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                                    .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "보행 안내 동영상",
-                                    color = WalkManColors.TextSecondary
+                            // 다큐멘터리 비디오 플레이어
+                            if (exoPlayer != null) {
+                                AndroidView(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    factory = { ctx ->
+                                        StyledPlayerView(ctx).apply {
+                                            player = exoPlayer
+                                            useController = true // 재생 컨트롤러 표시
+                                            setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
+                                        }
+                                    }
                                 )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp)
+                                        .background(Color(0xFFEEEEEE), RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "다큐멘터리 영상 로딩 중...",
+                                        color = WalkManColors.TextSecondary
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
-                                text = "영상을 보고 자연스럽게 걸어주세요",
+                                text = "자연 다큐멘터리를 보면서 자연스럽게 걸어주세요",
                                 color = WalkManColors.TextSecondary,
                                 style = MaterialTheme.typography.bodyMedium
                             )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // 주의사항
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = WalkManColors.Primary.copy(alpha = 0.1f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "걸으면서 영상을 시청할 때는 주변 환경에 계속 주의를 기울여주세요.",
+                                    color = WalkManColors.Primary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(8.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                         RecordingMode.POCKET -> {
                             Box(
@@ -155,7 +359,7 @@ fun RecordingScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
 
                                     Text(
-                                        text = "휴대폰을 주머니에 넣고\n30초간 걸어주세요",
+                                        text = "휴대폰을 주머니에 넣고\n90초간 걸어주세요",
                                         color = WalkManColors.TextSecondary,
                                         textAlign = TextAlign.Center
                                     )
@@ -166,8 +370,8 @@ fun RecordingScreen(
                             OutlinedTextField(
                                 value = inputText,
                                 onValueChange = { inputText = it },
-                                label = { Text("입력해주세요", color = WalkManColors.TextSecondary) },
-                                placeholder = { Text("걸으면서 자유롭게 입력해주세요", color = WalkManColors.TextSecondary) },
+                                label = { Text("애국가를 입력해주세요", color = WalkManColors.TextSecondary) },
+                                placeholder = { Text("걸으면서 애국가를 입력해주세요", color = WalkManColors.TextSecondary) },
                                 colors = TextFieldDefaults.outlinedTextFieldColors(
                                     unfocusedTextColor = WalkManColors.TextPrimary,
                                     focusedTextColor = WalkManColors.TextPrimary,
@@ -206,26 +410,28 @@ fun RecordingScreen(
                             style = MaterialTheme.typography.titleMedium,
                             color = WalkManColors.TextPrimary
                         )
+
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        val reading = currentReading!!
-
+                        // 고정된 너비로 센서 데이터 표시하여 떨림 방지
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column {
+                            // 가속도계 열
+                            Column(modifier = Modifier.width(160.dp)) {
                                 Text("가속도계", fontWeight = FontWeight.Bold, color = WalkManColors.TextPrimary)
-                                Text("X: ${String.format("%.2f", reading.accX)} m/s²", color = WalkManColors.TextSecondary)
-                                Text("Y: ${String.format("%.2f", reading.accY)} m/s²", color = WalkManColors.TextSecondary)
-                                Text("Z: ${String.format("%.2f", reading.accZ)} m/s²", color = WalkManColors.TextSecondary)
+                                SensorValueRow("X:", sensorDataFormatted?.accX ?: "0.00", "m/s²")
+                                SensorValueRow("Y:", sensorDataFormatted?.accY ?: "0.00", "m/s²")
+                                SensorValueRow("Z:", sensorDataFormatted?.accZ ?: "0.00", "m/s²")
                             }
 
-                            Column {
+                            // 자이로스코프 열
+                            Column(modifier = Modifier.width(160.dp)) {
                                 Text("자이로스코프", fontWeight = FontWeight.Bold, color = WalkManColors.TextPrimary)
-                                Text("X: ${String.format("%.2f", reading.gyroX)} rad/s", color = WalkManColors.TextSecondary)
-                                Text("Y: ${String.format("%.2f", reading.gyroY)} rad/s", color = WalkManColors.TextSecondary)
-                                Text("Z: ${String.format("%.2f", reading.gyroZ)} rad/s", color = WalkManColors.TextSecondary)
+                                SensorValueRow("X:", sensorDataFormatted?.gyroX ?: "0.00", "rad/s")
+                                SensorValueRow("Y:", sensorDataFormatted?.gyroY ?: "0.00", "rad/s")
+                                SensorValueRow("Z:", sensorDataFormatted?.gyroZ ?: "0.00", "rad/s")
                             }
                         }
                     }
@@ -274,6 +480,28 @@ fun RecordingScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+
+                        // 업로드 안내 정보
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = "Info",
+                                tint = WalkManColors.TextSecondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "측정은 반드시 90초 동안 완료해야 데이터가 저장됩니다.",
+                                color = WalkManColors.TextSecondary,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -317,15 +545,82 @@ fun RecordingScreen(
                 }
             }
 
+            // 측정 중단 메시지
+            if (measurementCancelled && !uiState.isRecording && !uiState.isUploading) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = WalkManColors.Error.copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "측정이 중단되었습니다",
+                            color = WalkManColors.Error,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "데이터가 저장되지 않았습니다. 90초 동안 측정을 완료해주세요.",
+                            color = WalkManColors.TextPrimary,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
+            // 측정 완료 메시지
+            if (fullMeasurementCompleted && !uiState.isRecording && !uiState.isUploading && uiState.successMessage == null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = WalkManColors.Success.copy(alpha = 0.1f)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "90초 측정 완료! 데이터 업로드 중...",
+                            color = WalkManColors.Success,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
             // 측정 버튼
             Button(
                 onClick = {
                     if (uiState.isRecording) {
-                        viewModel.stopRecording()
+                        handleStopRecording()
                     } else {
                         viewModel.startRecording(mode)
+                        // 녹화 시작 시 영상도 재생
+                        if (mode == RecordingMode.VIDEO) {
+                            exoPlayer?.play()
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -405,3 +700,34 @@ fun RecordingScreen(
         }
     }
 }
+
+// 센서 데이터 고정 너비 표시를 위한 컴포저블
+@Composable
+fun SensorValueRow(label: String, value: String, unit: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, color = WalkManColors.TextSecondary, modifier = Modifier.width(24.dp))
+
+        // 고정된 너비로 값 표시
+        Text(
+            text = value,
+            color = WalkManColors.TextSecondary,
+            modifier = Modifier.width(48.dp),
+            textAlign = TextAlign.End
+        )
+
+        Text(" $unit", color = WalkManColors.TextSecondary)
+    }
+}
+
+// 포맷팅된 센서 데이터를 저장하는 데이터 클래스
+data class SensorDataFormatted(
+    val accX: String,
+    val accY: String,
+    val accZ: String,
+    val gyroX: String,
+    val gyroY: String,
+    val gyroZ: String
+)

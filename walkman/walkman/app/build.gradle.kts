@@ -106,4 +106,7 @@ dependencies {
     // 코루틴
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    //영상
+    implementation ("com.google.android.exoplayer:exoplayer:2.19.1")
 }

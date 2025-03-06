@@ -124,7 +124,7 @@ fun RecordingModesScreen(
             // 주머니 모드
             ModeCard(
                 title = "주머니에 넣고 측정",
-                description = "휴대폰을 주머니에 넣고 30초간 걸어주세요",
+                description = "휴대폰을 주머니에 넣고 90초간 걸어주세요",
                 isCompleted = viewModel.isModeCompleted(RecordingMode.POCKET),
                 onClick = { onNavigateToRecording(RecordingMode.POCKET) }
             )
@@ -248,12 +248,20 @@ fun UserInfoCard(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = userInfo?.name ?: "사용자",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = WalkManColors.TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
+                Row {
+                    Text(
+                        text = userInfo?.name ?: "사용자",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = WalkManColors.TextPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = userInfo?.mbti ?: "MBTI",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WalkManColors.TextSecondary,
+                    )
+                }
+
 
                 Spacer(modifier = Modifier.height(4.dp))
 
