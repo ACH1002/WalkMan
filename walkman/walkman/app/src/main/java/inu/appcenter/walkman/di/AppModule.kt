@@ -9,9 +9,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import inu.appcenter.walkman.data.datasource.DriveServiceHelper
 import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
+import inu.appcenter.walkman.data.repository.StepCountRepositoryImpl
 import inu.appcenter.walkman.data.repository.StorageRepositoryImpl
 import inu.appcenter.walkman.data.repository.UserRepositoryImpl
 import inu.appcenter.walkman.domain.repository.SensorRepository
+import inu.appcenter.walkman.domain.repository.StepCountRepository
 import inu.appcenter.walkman.domain.repository.StorageRepository
 import inu.appcenter.walkman.domain.repository.UserRepository
 import javax.inject.Singleton
@@ -54,5 +56,13 @@ object AppModule {
         driveServiceHelper: DriveServiceHelper
     ): StorageRepository {
         return StorageRepositoryImpl(context, driveServiceHelper)
+    }
+
+    @Provides
+    @Singleton
+    fun provideStepCountRepository(
+        @ApplicationContext context: Context
+    ): StepCountRepository {
+        return StepCountRepositoryImpl(context)
     }
 }

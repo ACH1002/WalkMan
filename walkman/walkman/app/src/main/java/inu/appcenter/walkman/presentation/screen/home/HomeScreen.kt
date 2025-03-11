@@ -19,34 +19,53 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.presentation.theme.WalkManColors
+import inu.appcenter.walkman.presentation.viewmodel.HomeViewModel
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
     onStartNewRecording: () -> Unit = {}
 ) {
+    val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -57,6 +76,20 @@ fun HomeScreen(
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
+                },
+                actions = {
+                    // 새로고침 버튼
+                    IconButton(onClick = {
+                        scope.launch {
+                            viewModel.loadWeeklyData()
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "새로고침",
+                            tint = WalkManColors.Primary
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = WalkManColors.Background
@@ -86,12 +119,20 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 오늘의 요약 카드
-            TodaySummaryCard()
+            TodaySummaryCard(
+                steps = uiState.todaySteps,
+                distance = uiState.todayDistance,
+                calories = uiState.todayCalories,
+                isLoading = uiState.isLoading
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 최근 측정 데이터 카드
-            RecentMeasurementsCard()
+            // 주간 걸음 수 차트 카드
+            WeeklyStepsCard(
+                weeklyData = uiState.weeklyStepData,
+                isLoading = uiState.isLoading
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -128,7 +169,12 @@ fun HomeScreen(
 }
 
 @Composable
-fun TodaySummaryCard() {
+fun TodaySummaryCard(
+    steps: Int,
+    distance: Float,
+    calories: Float,
+    isLoading: Boolean
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -140,50 +186,201 @@ fun TodaySummaryCard() {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            Text(
-                text = "오늘의 요약",
-                style = MaterialTheme.typography.titleMedium,
-                color = WalkManColors.TextPrimary,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // 걸음 수
-                StatItem(
-                    value = "0",
-                    label = "걸음",
-                    color = WalkManColors.Primary
+                Text(
+                    text = "오늘의 요약",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WalkManColors.TextPrimary,
+                    fontWeight = FontWeight.Bold
                 )
 
-                // 거리
-                StatItem(
-                    value = "0.0",
-                    label = "km",
-                    color = WalkManColors.Success
-                )
-
-                // 칼로리
-                StatItem(
-                    value = "0",
-                    label = "kcal",
-                    color = WalkManColors.Error
+                Text(
+                    text = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA).format(Calendar.getInstance().time),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = WalkManColors.TextSecondary
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = WalkManColors.Primary)
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // 걸음 수
+                    StatItem(
+                        value = steps.toString(),
+                        label = "걸음",
+                        color = WalkManColors.Primary
+                    )
+
+                    // 거리
+                    StatItem(
+                        value = String.format("%.2f", distance),
+                        label = "km",
+                        color = WalkManColors.Success
+                    )
+
+                    // 칼로리
+                    StatItem(
+                        value = String.format("%.1f", calories),
+                        label = "kcal",
+                        color = WalkManColors.Error
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 진행률 표시
+            val goalSteps = 10000 // 목표 걸음 수
+            val progress = (steps.toFloat() / goalSteps).coerceIn(0f, 1f)
+
             Text(
-                text = "아직 오늘의 걸음 데이터가 없습니다.\n새로운 측정을 시작해보세요!",
-                style = MaterialTheme.typography.bodyMedium,
-                color = WalkManColors.TextSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                text = "일일 목표: $goalSteps 걸음",
+                style = MaterialTheme.typography.bodySmall,
+                color = WalkManColors.TextSecondary
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+                color = WalkManColors.Primary,
+                trackColor = WalkManColors.Primary.copy(alpha = 0.2f)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "${(progress * 100).toInt()}% 달성",
+                style = MaterialTheme.typography.bodySmall,
+                color = WalkManColors.Primary,
+                modifier = Modifier.align(Alignment.End)
+            )
+        }
+    }
+}
+
+@Composable
+fun WeeklyStepsCard(
+    weeklyData: List<Any>, // StepCountData 타입이지만 예시를 위해 Any로 지정
+    isLoading: Boolean
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = WalkManColors.CardBackground
+        ),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "주간 활동 통계",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WalkManColors.TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Icon(
+                    imageVector = Icons.Default.TrendingUp,
+                    contentDescription = "추세",
+                    tint = WalkManColors.Primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = WalkManColors.Primary)
+                }
+            } else if (weeklyData.isEmpty()) {
+                // 데이터가 없는 경우
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "아직 주간 데이터가 없습니다",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = WalkManColors.TextPrimary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            } else {
+                // 여기에 실제 주간 차트를 구현할 수 있습니다.
+                // 샘플로 더미 차트 표시
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .background(WalkManColors.Primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "주간 활동 차트가 여기에 표시됩니다",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WalkManColors.TextPrimary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 주간 통계 요약
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    WeeklyStat(
+                        value = "45,328",
+                        label = "총 걸음 수",
+                        color = WalkManColors.Primary
+                    )
+
+                    WeeklyStat(
+                        value = "32.4",
+                        label = "총 거리(km)",
+                        color = WalkManColors.Success
+                    )
+
+                    WeeklyStat(
+                        value = "6,475",
+                        label = "평균 걸음/일",
+                        color = WalkManColors.Primary
+                    )
+                }
+            }
         }
     }
 }
@@ -222,63 +419,26 @@ fun StatItem(
 }
 
 @Composable
-fun RecentMeasurementsCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = WalkManColors.CardBackground
-        ),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+fun WeeklyStat(
+    value: String,
+    label: String,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "최근 측정 데이터",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = WalkManColors.TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            color = color,
+            fontWeight = FontWeight.Bold
+        )
 
-                Icon(
-                    imageVector = Icons.Default.TrendingUp,
-                    contentDescription = "추세",
-                    tint = WalkManColors.Primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 최근 측정 데이터가 없는 상태
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "아직 측정 데이터가 없습니다",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = WalkManColors.TextPrimary,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "3가지 측정 모드로 걸음걸이 데이터를 수집해보세요",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = WalkManColors.TextSecondary,
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = WalkManColors.TextSecondary
+        )
     }
 }
 
