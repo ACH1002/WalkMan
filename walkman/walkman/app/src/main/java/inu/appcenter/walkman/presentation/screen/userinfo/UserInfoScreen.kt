@@ -15,8 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -46,6 +44,12 @@ fun UserInfoScreen(
         "ESTP", "ESFP", "ENFP", "ENTP",
         "ESTJ", "ESFJ", "ENFJ", "ENTJ"
     )
+
+    // 화면이 처음 표시될 때 기존 데이터 로드를 확인
+    LaunchedEffect(Unit) {
+        // viewModel에서 데이터가 이미 로드되어 있는지 확인
+        // 필요한 경우 여기에 추가 로직을 넣을 수 있습니다
+    }
 
     Scaffold(
         topBar = {
@@ -141,7 +145,7 @@ fun UserInfoScreen(
                     .padding(bottom = 16.dp),
                 maxLines = 1,
                 keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Done
+                    imeAction = ImeAction.Next
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }

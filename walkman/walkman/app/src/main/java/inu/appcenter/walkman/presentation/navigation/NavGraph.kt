@@ -1,11 +1,9 @@
 package inu.appcenter.walkman.presentation.navigation
 
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -22,8 +20,6 @@ import inu.appcenter.walkman.presentation.screen.result.RecordingResultsScreen
 import inu.appcenter.walkman.presentation.screen.userinfo.UserInfoScreen
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
 @Composable
 fun GaitxNavGraph(
@@ -37,9 +33,6 @@ fun GaitxNavGraph(
 
     // 현재 사용자 정보
     val userInfoState by userInfoViewModel.uiState.collectAsState()
-
-    // 코루틴 스코프
-    val scope = rememberCoroutineScope()
 
     NavHost(
         navController = navController,
@@ -71,6 +64,7 @@ fun GaitxNavGraph(
 
             UserInfoScreen(
                 viewModel = userInfoViewModel,
+                isEdit = isEdit,
                 onNavigateNext = {
                     if (isEdit) {
                         // 편집 모드에서는 이전 화면으로 돌아감
@@ -93,7 +87,8 @@ fun GaitxNavGraph(
                     name = userInfoState.name,
                     gender = userInfoState.gender,
                     height = userInfoState.height,
-                    weight = userInfoState.weight
+                    weight = userInfoState.weight,
+                    mbti = userInfoState.mbti
                 ),
                 onNavigateToRecording = { mode ->
                     navController.navigate("recording/${mode.name}")
@@ -108,8 +103,12 @@ fun GaitxNavGraph(
             )
         }
 
+        // 메인 네비게이션
         composable("main_navigation") {
-            MainNavigationScreen()
+            // 외부 네비게이션 컨트롤러 전달
+            MainNavigationScreen(
+                externalNavController = navController
+            )
         }
 
         // 측정 화면
@@ -145,7 +144,5 @@ fun GaitxNavGraph(
                 }
             )
         }
-
-
     }
 }

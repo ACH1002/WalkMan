@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -25,18 +26,37 @@ import inu.appcenter.walkman.presentation.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class StepCounterService : Service(), SensorEventListener {
 
     companion object {
-        private const val TAG = "StepCounterService"
-        private const val NOTIFICATION_ID = 1001
-        private const val CHANNEL_ID = "StepCounterChannel"
+        const val TAG = "StepCounterService"
+        const val NOTIFICATION_ID = 1001
+        const val CHANNEL_ID = "StepCounterChannel"
+        const val ACTION_STOP_SERVICE = "STOP_SERVICE"
+
+        // 센서 관련 SharedPreferences
+        private const val PREFS_NAME = "step_counter_service_prefs"
+        private const val KEY_DAILY_STEPS = "daily_steps"
+        private const val KEY_LAST_RESET_DATE = "last_reset_date"
+        private const val KEY_LAST_SAVE_TIME = "last_save_time"
+
+        // WakeLock 최대 시간 (30분)
+        private const val WAKE_LOCK_TIMEOUT = 1_800_000L
+
+        // 데이터 저장 주기 (15초)
+        private const val SAVE_INTERVAL = 15 * 1000L
+
+        // 최소 걸음 간격 (밀리초) - 너무 빠른 걸음 감지 방지
+        private const val MIN_STEP_INTERVAL = 250L
     }
 
     @Inject
@@ -47,13 +67,15 @@ class StepCounterService : Service(), SensorEventListener {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var sensorManager: SensorManager
+    private var stepDetector: Sensor? = null
     private var stepCounter: Sensor? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private lateinit var prefs: SharedPreferences
 
-    private var initialSteps: Int = -1
-    private var previousTotalSteps: Int = 0
-    private var currentSteps: Int = 0
-    private var lastSaveTimeMillis: Long = 0
+    // 걸음 수 관련 변수
+    private val _stepCount = MutableStateFlow(0)
+    private var lastStepTimestamp = 0L
+    private var lastSaveTimeMillis = 0L
     private var strideLength: Float = 0.75f  // 기본값 (미터 단위)
     private var userWeight: Float = 60f      // 기본값 (kg 단위)
 
@@ -63,18 +85,101 @@ class StepCounterService : Service(), SensorEventListener {
 
         // 센서 매니저 초기화
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
         stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
 
-        // CPU 절전 모드에서도 서비스 실행을 위한 Wake Lock
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "StepCounter:WakeLock"
-        ).apply {
-            acquire(10*60*1000L) // 10분 동안 WakeLock 유지
-        }
+        // SharedPreferences 초기화
+        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        // Wake Lock 설정 (30분 제한, 주기적으로 갱신)
+        setupWakeLock()
+
+        // 날짜 변경 확인 및 걸음 수 초기화
+        checkDateChangeAndResetSteps()
+
+        // 저장된 걸음 수 복원
+        _stepCount.value = prefs.getInt(KEY_DAILY_STEPS, 0)
+        Log.d(TAG, "Service created with steps: ${_stepCount.value}")
 
         // 사용자 정보 로드
+        loadUserInfo()
+    }
+
+    // 날짜 변경 확인 및 걸음 수 초기화
+    private fun checkDateChangeAndResetSteps() {
+        val currentDate = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        val lastResetDate = prefs.getLong(KEY_LAST_RESET_DATE, 0L)
+
+        if (currentDate > lastResetDate) {
+            // 날짜가 변경되었으면 걸음 수 초기화
+            resetDailySteps(currentDate)
+        }
+    }
+
+    // 걸음 수 초기화
+    private fun resetDailySteps(currentDate: Long) {
+        prefs.edit()
+            .putInt(KEY_DAILY_STEPS, 0)
+            .putLong(KEY_LAST_RESET_DATE, currentDate)
+            .apply()
+
+        _stepCount.value = 0
+        Log.d(TAG, "Daily steps reset for date: $currentDate")
+
+        // 당일 걸음 수 데이터 저장소도 초기화
+        serviceScope.launch {
+            stepCountRepository.resetStepsForDay(currentDate)
+        }
+    }
+
+    private fun setupWakeLock() {
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "StepCounter:WakeLock"
+            )
+
+            // 30분 동안 WakeLock 획득
+            wakeLock?.acquire(WAKE_LOCK_TIMEOUT)
+
+            // 주기적인 WakeLock 갱신을 위한 작업 예약
+            serviceScope.launch {
+                while (true) {
+                    kotlinx.coroutines.delay(WAKE_LOCK_TIMEOUT / 2)
+                    renewWakeLock()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error setting up WakeLock", e)
+        }
+    }
+
+    private fun renewWakeLock() {
+        wakeLock?.let {
+            if (it.isHeld) {
+                try {
+                    it.release()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error releasing WakeLock", e)
+                }
+            }
+            try {
+                it.acquire(WAKE_LOCK_TIMEOUT)
+                Log.d(TAG, "WakeLock renewed for ${WAKE_LOCK_TIMEOUT / 1000} seconds")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error renewing WakeLock", e)
+            }
+        }
+    }
+
+    private fun loadUserInfo() {
         serviceScope.launch {
             try {
                 val userInfo = userRepository.getUserInfo().first()
@@ -85,18 +190,6 @@ class StepCounterService : Service(), SensorEventListener {
                 strideLength = (height * 0.45f) / 100f  // cm에서 m로 변환
 
                 Log.d(TAG, "User weight: $userWeight kg, stride length: $strideLength m")
-
-                // 이전 저장된 걸음 수 데이터 로드
-                val today = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
-
-                val dailySteps = stepCountRepository.getStepsForDay(today)
-                previousTotalSteps = dailySteps.steps
-                Log.d(TAG, "Loaded previous steps: $previousTotalSteps")
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading user data", e)
             }
@@ -106,36 +199,50 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "Service onStartCommand")
 
-        // 이 부분을 아래 코드로 교체
-        // startForeground(NOTIFICATION_ID, createNotification("걸음 수 측정 중..."))
+        // STOP_SERVICE 액션 처리
+        if (intent?.action == ACTION_STOP_SERVICE) {
+            Log.d(TAG, "Received stop service action")
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         // 포그라운드 서비스로 실행 (Android 14 이상용 타입 지정)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
-                createNotification("걸음 수 측정 중..."),
+                createNotification("걸음 수: ${_stepCount.value}"),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             )
         } else {
-            startForeground(NOTIFICATION_ID, createNotification("걸음 수 측정 중..."))
+            startForeground(NOTIFICATION_ID, createNotification("걸음 수: ${_stepCount.value}"))
         }
 
         // 센서 리스너 등록
-        stepCounter?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
-            Log.d(TAG, "Step counter sensor registered")
-        } ?: run {
-            Log.e(TAG, "Step counter sensor not available on this device")
-        }
+        registerStepSensor()
 
+        // 서비스가 죽었을 때 자동으로 재시작
         return START_STICKY
+    }
+
+    private fun registerStepSensor() {
+        // 우선적으로 STEP_DETECTOR 센서 사용 (각 걸음마다 이벤트 발생)
+        if (stepDetector != null) {
+            sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
+            Log.d(TAG, "Step detector sensor registered")
+        } else if (stepCounter != null) {
+            // 대체 수단으로 STEP_COUNTER 센서 사용 (누적 걸음 수 제공)
+            sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL)
+            Log.d(TAG, "Step counter sensor registered (detector not available)")
+        } else {
+            Log.e(TAG, "No step detection sensors available on this device")
+        }
     }
 
     override fun onDestroy() {
         Log.d(TAG, "Service onDestroy")
 
-        // 진행 중인 데이터 저장
-        saveCurrentSteps()
+        // 마지막 걸음 수 저장
+        saveDailySteps(_stepCount.value)
 
         // 센서 리스너 해제
         sensorManager.unregisterListener(this)
@@ -143,7 +250,11 @@ class StepCounterService : Service(), SensorEventListener {
         // WakeLock 해제
         wakeLock?.let {
             if (it.isHeld) {
-                it.release()
+                try {
+                    it.release()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error releasing WakeLock on destroy", e)
+                }
             }
         }
 
@@ -153,61 +264,78 @@ class StepCounterService : Service(), SensorEventListener {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onSensorChanged(event: SensorEvent) {
-        if (event.sensor.type == Sensor.TYPE_STEP_COUNTER) {
-            val totalSteps = event.values[0].toInt()
+        val currentTime = System.currentTimeMillis()
 
-            // 초기 걸음 수 설정 (첫 실행 시)
-            if (initialSteps == -1) {
-                initialSteps = totalSteps
-                Log.d(TAG, "Initial steps: $initialSteps")
+        when (event.sensor.type) {
+            Sensor.TYPE_STEP_DETECTOR -> {
+                // 걸음 감지 센서 - 각 걸음마다 이벤트 발생 (값은 항상 1.0f)
+                // 디바운싱 - 너무 빠른 걸음 감지는 무시 (250ms 이내)
+                if (currentTime - lastStepTimestamp > MIN_STEP_INTERVAL) {
+                    val newStepCount = _stepCount.value + 1
+                    _stepCount.value = newStepCount
+
+                    // 걸음 수 저장
+                    saveDailySteps(newStepCount)
+
+                    // 알림 업데이트
+                    updateNotification()
+
+                    lastStepTimestamp = currentTime
+                    Log.d(TAG, "Step detected. Total steps: $newStepCount")
+                }
             }
-
-            // 현재 세션의 걸음 수 계산
-            currentSteps = totalSteps - initialSteps + previousTotalSteps
-
-            // 걸음 수를 주기적으로 저장 (30초마다)
-            val currentTimeMillis = System.currentTimeMillis()
-            if (currentTimeMillis - lastSaveTimeMillis > 30000) {
-                lastSaveTimeMillis = currentTimeMillis
-                saveCurrentSteps()
+            Sensor.TYPE_STEP_COUNTER -> {
+                // 걸음 수 센서 - 기기 부팅 후 총 누적 걸음 수 제공
+                // STEP_DETECTOR가 없는 경우에만 사용
+                // 여기서는 단순 로깅만 수행 (구현 필요시 추가)
+                Log.d(TAG, "Step counter value: ${event.values[0]}")
             }
-
-            // 노티피케이션 업데이트
-            updateNotification()
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // 정확도 변경 시 처리 (필요한 경우)
+        // 센서 정확도 변경 로깅
+        Log.d(TAG, "Sensor accuracy changed: $accuracy")
     }
 
-    private fun saveCurrentSteps() {
+    // 걸음 수 저장
+    private fun saveDailySteps(steps: Int) {
+        // 너무 자주 저장하지 않도록 제한 (15초마다)
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastSaveTimeMillis < SAVE_INTERVAL && steps != 1) {
+            // 첫 걸음이거나 충분한 시간이 지났을 때만 저장
+            return
+        }
+
+        // SharedPreferences에 저장
+        prefs.edit()
+            .putInt(KEY_DAILY_STEPS, steps)
+            .putLong(KEY_LAST_SAVE_TIME, currentTime)
+            .apply()
+
+        lastSaveTimeMillis = currentTime
+
+        // 걸음 수 데이터 저장소에도 저장
         serviceScope.launch {
-            try {
-                val currentTime = System.currentTimeMillis()
-                val distance = calculateDistance(currentSteps.toFloat())
-                val calories = calculateCalories(currentSteps.toFloat(), distance)
+            val currentDate = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
 
-                // 오늘 날짜 기준 (자정)
-                val today = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
+            // 거리와 칼로리 계산
+            val distance = calculateDistance(steps.toFloat())
+            val calories = calculateCalories(steps.toFloat(), distance)
 
-                // 데이터 저장
-                stepCountRepository.saveStepData(
-                    date = today,
-                    steps = currentSteps,
-                    distance = distance,
-                    calories = calories
-                )
+            stepCountRepository.saveStepData(
+                date = currentDate,
+                steps = steps,
+                distance = distance,
+                calories = calories
+            )
 
-                Log.d(TAG, "Saved steps: $currentSteps, distance: $distance km, calories: $calories kcal")
-            } catch (e: Exception) {
-                Log.e(TAG, "Error saving step data", e)
-            }
+            Log.d(TAG, "Saved steps: $steps, distance: $distance km, calories: $calories kcal")
         }
     }
 
@@ -232,8 +360,14 @@ class StepCounterService : Service(), SensorEventListener {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "걸음 수 측정",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_MIN
             )
+            channel.setSound(null, null)
+            channel.enableVibration(false)
+            channel.enableLights(false)
+            channel.setShowBadge(false)
+            channel.lockscreenVisibility = Notification.VISIBILITY_SECRET
+
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
@@ -246,23 +380,43 @@ class StepCounterService : Service(), SensorEventListener {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        // 서비스 중지 인텐트
+        val stopIntent = Intent(this, StepCounterService::class.java).apply {
+            action = ACTION_STOP_SERVICE
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
         // 알림 생성
+        val distance = calculateDistance(_stepCount.value.toFloat())
+        val calories = calculateCalories(_stepCount.value.toFloat(), distance)
+
+        val notificationText = "걸음 수: ${_stepCount.value} | " +
+                "거리: ${String.format("%.2f", distance)} km | " +
+                "칼로리: ${String.format("%.1f", calories)} kcal"
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("GAITX")
-            .setContentText(text)
-            .setSmallIcon(R.drawable.ic_launcher_background)
+            .setContentTitle("GAITX 걸음 수 측정 중")
+            .setContentText(notificationText)
+            .setSmallIcon(R.drawable.ic_launcher_foreground) // 적절한 아이콘으로 변경
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN) // 최소 우선순위
+            .setOngoing(true) // 사용자가 스와이프로 제거할 수 없게 설정
+            .setSilent(true) // 소리 없음
+            .setVisibility(NotificationCompat.VISIBILITY_SECRET) // 잠금화면에서 숨김
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "중지", stopPendingIntent)
             .build()
     }
 
     private fun updateNotification() {
-        val distance = calculateDistance(currentSteps.toFloat())
-        val calories = calculateCalories(currentSteps.toFloat(), distance)
-
-        val text = "걸음 수: $currentSteps | 거리: ${String.format("%.2f", distance)} km | 칼로리: ${String.format("%.1f", calories)} kcal"
-
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID, createNotification(text))
+        notificationManager.notify(NOTIFICATION_ID, createNotification("걸음 수: ${_stepCount.value}"))
     }
+
+    // 현재 걸음 수를 위한 Flow 제공
+    fun getStepCountFlow() = _stepCount.asStateFlow()
 }

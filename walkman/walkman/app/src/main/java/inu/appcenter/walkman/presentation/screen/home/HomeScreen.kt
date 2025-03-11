@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -93,22 +94,13 @@ fun HomeScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = WalkManColors.Background
-                )
+                ),
+                // 커스텀 수정자를 통해 높이 줄이기
+                modifier = Modifier.height(56.dp), // 기본값은 일반적으로 56dp
+                // 패딩 조정
             )
         },
         containerColor = WalkManColors.Background,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onStartNewRecording,
-                containerColor = WalkManColors.Primary,
-                contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "새 측정 시작"
-                )
-            }
-        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -363,19 +355,19 @@ fun WeeklyStepsCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     WeeklyStat(
-                        value = "45,328",
+                        value = "0",
                         label = "총 걸음 수",
                         color = WalkManColors.Primary
                     )
 
                     WeeklyStat(
-                        value = "32.4",
+                        value = "0",
                         label = "총 거리(km)",
                         color = WalkManColors.Success
                     )
 
                     WeeklyStat(
-                        value = "6,475",
+                        value = "0",
                         label = "평균 걸음/일",
                         color = WalkManColors.Primary
                     )
@@ -447,7 +439,7 @@ fun MbtiAnalysisCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = WalkManColors.Primary.copy(alpha = 0.1f)
+            containerColor = WalkManColors.CardBackground
         ),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

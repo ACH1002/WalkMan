@@ -1,11 +1,12 @@
 package inu.appcenter.walkman.presentation.screen.recordingmodes
 
-
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
@@ -28,6 +29,7 @@ fun RecordingModesScreen(
     onNavigateToRecording: (RecordingMode) -> Unit,
     onNavigateToResults: () -> Unit,
     onNavigateToUserInfo: () -> Unit,
+    onBackPressed: () -> Unit = {}, // 추가된 뒤로가기 콜백
     userInfo: UserInfo? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -39,6 +41,11 @@ fun RecordingModesScreen(
         }
     }
 
+    // 뒤로가기 처리
+    BackHandler {
+        onBackPressed()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -48,6 +55,16 @@ fun RecordingModesScreen(
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
+                },
+                navigationIcon = {
+                    // 뒤로가기 버튼 추가
+                    IconButton(onClick = onBackPressed) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "뒤로 가기",
+                            tint = WalkManColors.Primary
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = WalkManColors.Background
@@ -248,41 +265,39 @@ fun UserInfoCard(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Row {
-                    Text(
-                        text = userInfo?.name ?: "사용자",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = WalkManColors.TextPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = userInfo?.mbti ?: "MBTI",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = WalkManColors.TextSecondary,
-                    )
-                }
-
+                Text(
+                    text = userInfo?.name ?: "사용자",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WalkManColors.TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
 
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Row {
-                    Text(
-                        text = userInfo?.gender ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = WalkManColors.TextSecondary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = userInfo?.height?.let { "키 ${it}cm" } ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = WalkManColors.TextSecondary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = userInfo?.weight?.let { "체중 ${it}kg" } ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = WalkManColors.TextSecondary
-                    )
+                    if (!userInfo?.gender.isNullOrBlank()) {
+                        Text(
+                            text = userInfo?.gender ?: "",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = WalkManColors.TextSecondary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    if (!userInfo?.height.isNullOrBlank()) {
+                        Text(
+                            text = "키 ${userInfo?.height}cm",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = WalkManColors.TextSecondary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                    if (!userInfo?.weight.isNullOrBlank()) {
+                        Text(
+                            text = "체중 ${userInfo?.weight}kg",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = WalkManColors.TextSecondary
+                        )
+                    }
                 }
             }
 

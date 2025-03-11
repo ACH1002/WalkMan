@@ -2,9 +2,14 @@ package inu.appcenter.walkman.presentation
 
 
 import android.Manifest
+import android.app.AlertDialog
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -21,6 +26,7 @@ import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.MainViewModel
 import inu.appcenter.walkman.service.StepCounterService
+import inu.appcenter.walkman.service.StepCounterService.Companion.CHANNEL_ID
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -125,12 +131,56 @@ class MainActivity : ComponentActivity() {
             permissions.add(Manifest.permission.ACTIVITY_RECOGNITION)
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            shouldRequestPermission(Manifest.permission.POST_NOTIFICATIONS)) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
         // 권한 요청
         if (permissions.isNotEmpty()) {
             permissionsLauncher.launch(permissions.toTypedArray())
         } else if (arePermissionsGranted()) {
             // 이미 모든 권한이 있는 경우 서비스 시작
             startStepCounterService()
+        }
+    }
+
+    private fun checkNotificationSettings() {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = notificationManager.getNotificationChannel(CHANNEL_ID)
+
+            // 채널이 존재하고 알림이 차단된 경우
+            if (channel != null && channel.importance == NotificationManager.IMPORTANCE_NONE) {
+                AlertDialog.Builder(this)
+                    .setTitle("알림 설정 필요")
+                    .setMessage("걸음 수를 측정하기 위해서는 알림 설정이 필요합니다. 설정으로 이동하여 알림을 허용해주세요.")
+                    .setPositiveButton("설정으로 이동") { _, _ ->
+                        val intent = Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).apply {
+                            putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                            putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID)
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("취소", null)
+                    .show()
+            }
+        } else {
+            // Android O 미만에서는 앱 전체 알림 설정 확인
+            if (!notificationManager.areNotificationsEnabled()) {
+                AlertDialog.Builder(this)
+                    .setTitle("알림 설정 필요")
+                    .setMessage("걸음 수를 측정하기 위해서는 알림 설정이 필요합니다. 설정으로 이동하여 알림을 허용해주세요.")
+                    .setPositiveButton("설정으로 이동") { _, _ ->
+                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            data = Uri.parse("package:$packageName")
+                        }
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("취소", null)
+                    .show()
+            }
         }
     }
 
@@ -149,7 +199,14 @@ class MainActivity : ComponentActivity() {
         val fineLocationGranted =
             checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
 
-        return activityRecognitionGranted && fineLocationGranted
+        // Android 13 이상에서 알림 권한 확인
+        val notificationPermissionGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Android 13 미만에서는 필요 없음
+        }
+
+        return activityRecognitionGranted && fineLocationGranted && notificationPermissionGranted
     }
 
     private fun startStepCounterService() {

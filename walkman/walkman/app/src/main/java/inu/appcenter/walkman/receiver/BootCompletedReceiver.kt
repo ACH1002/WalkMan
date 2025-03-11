@@ -1,3 +1,5 @@
+package inu.appcenter.walkman.receiver
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -18,13 +20,21 @@ class BootCompletedReceiver : BroadcastReceiver() {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Log.d(TAG, "Device boot completed, starting step counter service")
 
+            // 약간의 지연 후 서비스 시작 (시스템 부팅 완료 확보)
+            Thread.sleep(5000)
+
             // StepCounterService 시작
             val serviceIntent = Intent(context, StepCounterService::class.java)
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(serviceIntent)
+                } else {
+                    context.startService(serviceIntent)
+                }
+                Log.d(TAG, "Step counter service started after boot")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start service after boot", e)
             }
         }
     }

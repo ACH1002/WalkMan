@@ -36,9 +36,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideSensorRepository(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        stepCountRepository: StepCountRepository
     ): SensorRepository {
-        return SensorRepositoryImpl(context)
+        return SensorRepositoryImpl(context, stepCountRepository)
     }
 
     @Provides

@@ -43,4 +43,16 @@ interface StepCountRepository {
      * @param date 초기화할 날짜 (밀리초 단위의 타임스탬프)
      */
     suspend fun resetStepsForDay(date: Long)
+
+    /**
+     * 걸음 수 보정 계수 설정
+     * @param factor 보정 계수 (0.5~1.5 사이의 값)
+     */
+    suspend fun setCalibrationFactor(factor: Float)
+
+    /**
+     * 현재 설정된 걸음 수 보정 계수 가져오기
+     * @return 보정 계수
+     */
+    fun getCalibrationFactor(): Float
 }
