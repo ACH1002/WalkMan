@@ -27,7 +27,7 @@ object AppModule {
     ): DriveServiceHelper {
         return DriveServiceHelper(
             context = context,
-            folderId = "1dcCpHA0uXQXo3jMSZcUIDoRhqBZIpLbU" // 구글 드라이브 폴더 ID
+            folderId = "13Lc6GyE_TquVX8E0tCStm8I8Fp9XWX_J" // 구글 드라이브 폴더 ID
         )
     }
 

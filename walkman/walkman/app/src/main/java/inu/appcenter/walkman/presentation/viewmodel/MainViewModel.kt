@@ -34,11 +34,25 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
+
+        // 데이터 수집 완료 상태 로드
+        viewModelScope.launch {
+            userRepository.isDataCollectionCompleted().collect { isCompleted ->
+                _uiState.update { it.copy(isDataCollectionComplete = isCompleted) }
+            }
+        }
     }
 
     // 온보딩 완료 표시
     fun markOnboardingShown() {
         _uiState.update { it.copy(onboardingShown = true) }
+    }
+
+    // 데이터 수집 완료 표시 함수 추가
+    fun markDataCollectionCompleted() {
+        viewModelScope.launch {
+            userRepository.setDataCollectionCompleted(true)
+        }
     }
 }
 
@@ -47,5 +61,6 @@ data class MainUiState(
     val isLoading: Boolean = true,
     val isUserProfileComplete: Boolean = false,
     val shouldShowOnboarding: Boolean = true,
-    val onboardingShown: Boolean = false
+    val onboardingShown: Boolean = false,
+    val isDataCollectionComplete: Boolean = false
 )

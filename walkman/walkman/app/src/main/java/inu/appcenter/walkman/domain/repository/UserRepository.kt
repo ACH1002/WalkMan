@@ -8,4 +8,6 @@ interface UserRepository {
     suspend fun saveUserInfo(userInfo: UserInfo)
     suspend fun getUserDeviceId(): String
     suspend fun updateUserMetric(height: String, weight: String)
+    fun isDataCollectionCompleted(): Flow<Boolean>
+    suspend fun setDataCollectionCompleted(completed: Boolean)
 }

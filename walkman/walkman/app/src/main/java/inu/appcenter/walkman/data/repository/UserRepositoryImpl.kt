@@ -54,6 +54,17 @@ class UserRepositoryImpl @Inject constructor(
         saveUserInfo(updated)
     }
 
+    private val _isDataCollectionCompleted = MutableStateFlow(
+        prefs.getBoolean(KEY_DATA_COLLECTION_COMPLETED, false)
+    )
+    override fun isDataCollectionCompleted(): Flow<Boolean> = _isDataCollectionCompleted.asStateFlow()
+
+
+    override suspend fun setDataCollectionCompleted(completed: Boolean) {
+        prefs.edit().putBoolean(KEY_DATA_COLLECTION_COMPLETED, completed).apply()
+        _isDataCollectionCompleted.value = completed
+    }
+
     private fun getOrCreateDeviceId(): String {
         var deviceId = prefs.getString(KEY_DEVICE_ID, null)
 
@@ -72,5 +83,6 @@ class UserRepositoryImpl @Inject constructor(
         private const val KEY_WEIGHT = "user_weight"
         private const val KEY_MBTI = "user_mbti" // MBTI 키 추가
         private const val KEY_DEVICE_ID = "device_id"
+        private const val KEY_DATA_COLLECTION_COMPLETED = "data_collection_completed"
     }
 }

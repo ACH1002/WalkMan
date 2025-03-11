@@ -103,6 +103,15 @@ class RecordingViewModel @Inject constructor(
             val updatedCompletedModes = currentState.completedModes.toMutableSet()
             updatedCompletedModes.add(mode)
 
+            val allCompleted = updatedCompletedModes.size >= 3 // 3가지 모드 모두 완료 확인
+
+            // 모든 모드가 완료되었다면 데이터 수집 완료 상태 저장
+            if (allCompleted) {
+                viewModelScope.launch {
+                    userRepository.setDataCollectionCompleted(true)
+                }
+            }
+
             currentState.copy(
                 completedModes = updatedCompletedModes,
                 allModesCompleted = updatedCompletedModes.size >= 3 // 3가지 모드 모두 완료 확인

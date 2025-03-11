@@ -108,6 +108,10 @@ fun GaitxNavGraph(
             )
         }
 
+        composable("main_navigation") {
+            MainNavigationScreen()
+        }
+
         // 측정 화면
         composable(
             route = "recording/{mode}",
@@ -135,11 +139,13 @@ fun GaitxNavGraph(
             RecordingResultsScreen(
                 viewModel = recordingViewModel,
                 onNavigateHome = {
-                    navController.navigate("recording_modes") {
+                    navController.navigate("main_navigation") {
                         popUpTo("recording_modes") { inclusive = true }
                     }
                 }
             )
         }
+
+
     }
 }

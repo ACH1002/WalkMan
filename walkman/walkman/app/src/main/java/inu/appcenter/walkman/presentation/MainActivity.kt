@@ -78,6 +78,7 @@ class MainActivity : ComponentActivity() {
                 GaitxNavGraph(
                     startDestination = when {
                         uiState.shouldShowOnboarding -> "onboarding"
+                        uiState.isUserProfileComplete && uiState.isDataCollectionComplete -> "main_navigation"
                         else -> "recording_modes"
                     },
                     onOnboardingComplete = {
