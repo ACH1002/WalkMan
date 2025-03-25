@@ -9,7 +9,9 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
@@ -24,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
@@ -47,6 +50,9 @@ fun RecordingScreen(
     val uiState by viewModel.uiState.collectAsState()
     val currentReading by viewModel.currentReading.collectAsState()
     val context = LocalContext.current
+
+    // 스크롤 상태 추가
+    val scrollState = rememberScrollState()
 
     var inputText by remember { mutableStateOf("") }
     var recordingTimeElapsed by remember { mutableStateOf(0) }
@@ -233,30 +239,56 @@ fun RecordingScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
-                    Text(
-                        text = when(mode) {
-                            RecordingMode.POCKET -> stringResource(id = R.string.recording_pocket_mode)
-                            RecordingMode.VIDEO -> stringResource(id = R.string.recording_video_mode)
-                            RecordingMode.TEXT -> stringResource(id = R.string.recording_text_mode)
-                        },
-                        color = WalkManColors.Primary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxHeight(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = when(mode) {
+                                RecordingMode.POCKET -> stringResource(id = R.string.recording_pocket_mode)
+                                RecordingMode.VIDEO -> stringResource(id = R.string.recording_video_mode)
+                                RecordingMode.TEXT -> stringResource(id = R.string.recording_text_mode)
+                            },
+                            color = WalkManColors.Primary,
+                            fontWeight = FontWeight.Bold,
+                            // 타이틀 텍스트 크기 줄이기
+                            fontSize = 18.sp,
+                            modifier = Modifier,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 },
                 navigationIcon = {
-                    IconButton(onClick = handleBackPress) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = stringResource(id = R.string.btn_back),
-                            tint = WalkManColors.TextPrimary
-                        )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxHeight(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = handleBackPress,
+                            // 아이콘 버튼 크기 줄이기
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = stringResource(id = R.string.btn_back),
+                                tint = WalkManColors.TextPrimary,
+                                // 아이콘 크기 줄이기
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = WalkManColors.Background
-                )
+                ),
+                // 커스텀 수정자를 통해 높이 줄이기
+                modifier = Modifier.height(70.dp), // 기본값은 일반적으로 64dp
+                // 컨텐츠 패딩 조정
+                windowInsets = WindowInsets(0,10,0,0)
             )
         },
         containerColor = WalkManColors.Background
@@ -265,7 +297,8 @@ fun RecordingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 모드별 콘텐츠

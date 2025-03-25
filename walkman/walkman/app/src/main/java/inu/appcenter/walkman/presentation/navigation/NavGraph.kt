@@ -50,7 +50,7 @@ fun GaitxNavGraph(
             )
         }
 
-        // 사용자 정보 입력 화면
+        // NavGraph.kt의 UserInfoScreen 부분 수정
         composable(
             route = "user_info?isEdit={isEdit}",
             arguments = listOf(
@@ -70,8 +70,8 @@ fun GaitxNavGraph(
                         // 편집 모드에서는 이전 화면으로 돌아감
                         navController.popBackStack()
                     } else {
-                        // 최초 설정에서는 측정 모드 화면으로 이동
-                        navController.navigate("recording_modes") {
+                        // 최초 설정에서는 홈 화면으로 바로 이동
+                        navController.navigate("main_navigation") {
                             popUpTo("user_info") { inclusive = true }
                         }
                     }

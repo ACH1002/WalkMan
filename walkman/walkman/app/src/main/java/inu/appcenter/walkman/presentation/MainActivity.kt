@@ -90,18 +90,19 @@ class MainActivity : ComponentActivity() {
         // 필요한 권한 요청
         requestPermissions()
 
+        // MainActivity.kt의 setContent 부분 수정
         setContent {
             val uiState by viewModel.uiState.collectAsState()
 
             WalkManTheme(
                 darkTheme = false,
-                hideNavigationBar = true // 새로 추가된 매개변수
+                hideNavigationBar = true
             ) {
                 GaitxNavGraph(
                     startDestination = when {
                         uiState.shouldShowOnboarding -> "onboarding"
-                        uiState.isUserProfileComplete && uiState.isDataCollectionComplete -> "main_navigation"
-                        else -> "recording_modes"
+                        uiState.isUserProfileComplete -> "main_navigation" // 프로필이 완성되면 바로 홈으로
+                        else -> "user_info" // 프로필이 없으면 정보 입력 화면으로
                     },
                     onOnboardingComplete = {
                         viewModel.markOnboardingShown()

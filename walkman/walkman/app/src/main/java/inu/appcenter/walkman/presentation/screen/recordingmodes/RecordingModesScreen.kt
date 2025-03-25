@@ -238,9 +238,19 @@ fun UserInfoCard(
     userInfo: UserInfo?,
     onEditClick: () -> Unit
 ) {
+    // 현재 언어에 맞게 성별 텍스트 변환
+    val genderText = when(userInfo?.gender) {
+        stringResource(id = R.string.gender_male) -> stringResource(id = R.string.gender_male)
+        stringResource(id = R.string.gender_female) -> stringResource(id = R.string.gender_female)
+        "남성" -> stringResource(id = R.string.gender_male)
+        "여성" -> stringResource(id = R.string.gender_female)
+        "Male" -> stringResource(id = R.string.gender_male)
+        "Female" -> stringResource(id = R.string.gender_female)
+        else -> userInfo?.gender ?: ""
+    }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = WalkManColors.CardBackground
         ),
@@ -276,15 +286,20 @@ fun UserInfoCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Row {
-                    if (!userInfo?.gender.isNullOrBlank()) {
-                        Text(
-                            text = userInfo?.gender ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = WalkManColors.TextSecondary
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
+                // Wrap을 구현하는 FlowRow 대신 텍스트를 개별적으로 나열
+                // 첫 줄: 성별
+                if (!userInfo?.gender.isNullOrBlank()) {
+                    Text(
+                        text = genderText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WalkManColors.TextSecondary
+                    )
+                }
+
+                // 두 번째 줄: 키와 몸무게 나란히
+                Row(
+                    modifier = Modifier.padding(top = 2.dp)
+                ) {
                     if (!userInfo?.height.isNullOrBlank()) {
                         Text(
                             text = stringResource(id = R.string.profile_height, userInfo?.height ?: ""),
@@ -293,6 +308,7 @@ fun UserInfoCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
+
                     if (!userInfo?.weight.isNullOrBlank()) {
                         Text(
                             text = stringResource(id = R.string.profile_weight, userInfo?.weight ?: ""),
