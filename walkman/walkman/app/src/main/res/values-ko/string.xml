@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 앱 기본 정보 -->
+    <string name="app_name">GAITX</string>
+    <string name="language_code">ko</string>
+
+    <!-- 화면 제목 -->
+    <string name="title_home">홈</string>
+    <string name="title_mypage">마이페이지</string>
+    <string name="title_recording">측정</string>
+    <string name="title_measurement_complete">측정 완료</string>
+    <string name="title_start">시작하기</string>
+    <string name="title_user_info">기본 정보 입력</string>
+
+    <!-- 버튼 -->
+    <string name="btn_next">다음</string>
+    <string name="btn_save">저장하기</string>
+    <string name="btn_start_recording">측정 시작</string>
+    <string name="btn_stop_recording">측정 중지</string>
+    <string name="btn_home">홈으로 돌아가기</string>
+    <string name="btn_back">뒤로 가기</string>
+    <string name="btn_complete_recording">측정 완료하기</string>
+
+    <!-- 사용자 정보 -->
+    <string name="label_name">이름</string>
+    <string name="label_gender">성별</string>
+    <string name="label_height">키 (cm)</string>
+    <string name="label_weight">몸무게 (kg)</string>
+    <string name="label_mbti">MBTI (선택사항)</string>
+    <string name="gender_male">남성</string>
+    <string name="gender_female">여성</string>
+    <string name="placeholder_name">이름을 입력하세요</string>
+    <string name="placeholder_height">키를 입력하세요</string>
+    <string name="placeholder_weight">몸무게를 입력하세요</string>
+    <string name="placeholder_mbti">MBTI를 선택하세요</string>
+    <string name="profile">프로필</string>
+    <string name="default_user">사용자</string>
+    <string name="profile_height">키 %1$scm</string>
+    <string name="profile_weight">체중 %1$skg</string>
+    <string name="profile_mbti">MBTI: %1$s</string>
+    <string name="edit_profile">프로필 편집</string>
+
+    <!-- 온보딩 화면 -->
+    <string name="welcome_message">GAITX에 오신 것을 환영합니다!</string>
+    <string name="welcome_desc">GAITX는 보행 패턴을 분석하여\n안전한 보행을 도와주는 앱입니다.</string>
+    <string name="welcome_start">시작하기 전에 몇 가지 정보가 필요해요.</string>
+
+    <!-- 홈 화면 -->
+    <string name="today_summary">오늘의 요약</string>
+    <string name="steps">걸음</string>
+    <string name="distance">km</string>
+    <string name="calories">kcal</string>
+    <string name="daily_goal">일일 목표: %1$d 걸음</string>
+    <string name="achievement">%1$d%% 달성</string>
+    <string name="weekly_stats">주간 활동 통계</string>
+    <string name="start_new_recording">새 측정 시작</string>
+    <string name="start_new_recording_desc">보행 데이터 수집하기</string>
+
+    <!-- 언어 설정 -->
+    <string name="language">언어</string>
+    <string name="language_en">English</string>
+    <string name="language_ko">한국어</string>
+    <string name="language_change_notice">언어 변경 시 앱이 재시작됩니다.</string>
+
+    <!-- 측정 모드 화면 -->
+    <string name="recording_modes_title">측정 모드 선택</string>
+    <string name="recording_completed">완료된 측정: %1$d / 3</string>
+    <string name="recording_completed_item">완료됨</string>
+    <string name="recording_in_progress">데이터 기록 중...</string>
+    <string name="recording_video_mode">영상 보면서 측정</string>
+    <string name="recording_video_desc">영상을 보면서 걸음을 측정합니다</string>
+    <string name="recording_pocket_mode">주머니에 넣고 측정</string>
+    <string name="recording_pocket_desc">휴대폰을 주머니에 넣고 90초간 걸어주세요</string>
+    <string name="recording_text_mode">걸으면서 텍스트 입력</string>
+    <string name="recording_text_desc">걸으면서 텍스트를 입력해주세요</string>
+
+    <!-- 결과 화면 -->
+    <string name="all_measurements_completed">모든 측정이 완료되었습니다!</string>
+    <string name="data_used_message">수집된 데이터는 보행 패턴 분석에 활용됩니다.\n참여해 주셔서 감사합니다.</string>
+    <string name="completed_data">수집 완료된 데이터</string>
+    <string name="video_measurement">영상 보면서 측정</string>
+    <string name="pocket_measurement">주머니에 넣고 측정</string>
+    <string name="text_measurement">걸으면서 텍스트 입력</string>
+    <string name="data_uploaded">모든 데이터가 서버에 업로드되었습니다</string>
+
+    <!-- 설정 -->
+    <string name="settings">설정</string>
+    <string name="settings_language">언어 설정</string>
+    <string name="settings_notifications">알림 설정</string>
+    <string name="settings_notifications_desc">걸음 수 측정 알림</string>
+    <string name="settings_about">앱 정보</string>
+    <string name="settings_about_desc">버전, 개발자 정보</string>
+
+    <!-- 데이터 관리 -->
+    <string name="data_management">데이터 관리</string>
+    <string name="export_data">데이터 내보내기</string>
+    <string name="export_data_desc">CSV 파일로 저장</string>
+
+    <!-- RecordingScreen 관련 리소스 -->
+    <string name="person_icon">사용자</string>
+    <string name="video_loading">다큐멘터리 영상 로딩 중...</string>
+    <string name="video_recording_caution">걸으면서 영상을 시청할 때는 주변 환경에 계속 주의를 기울여주세요.</string>
+    <string name="text_input_label">애국가를 입력해주세요</string>
+    <string name="text_input_placeholder">걸으면서 애국가를 입력해주세요</string>
+    <string name="sensor_data">센서 데이터</string>
+    <string name="accelerometer">가속도계</string>
+    <string name="gyroscope">자이로스코프</string>
+    <string name="data_collection_in_progress">데이터 수집 중입니다</string>
+    <string name="time_remaining">남은 시간: %1$d초</string>
+    <string name="info">정보</string>
+    <string name="recording_time_info">측정은 반드시 90초 동안 완료해야 데이터가 저장됩니다.</string>
+    <string name="recording_cancelled">측정이 중단되었습니다</string>
+    <string name="recording_cancelled_message">데이터가 저장되지 않았습니다. 90초 동안 측정을 완료해주세요.</string>
+    <string name="recording_completed_90s">90초 측정 완료! 데이터 업로드 중...</string>
+    <string name="uploading_data">데이터 업로드 중...</string>
+
+    <!-- 추가 MyPageScreen 리소스 -->
+    <string name="select_mbti">MBTI 선택</string>
+</resources>

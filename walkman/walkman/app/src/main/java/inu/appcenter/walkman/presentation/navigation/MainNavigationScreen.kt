@@ -44,9 +44,11 @@ import androidx.navigation.compose.rememberNavController
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.screen.home.HomeScreen
+import inu.appcenter.walkman.presentation.screen.mypage.MyPageScreen
 import inu.appcenter.walkman.presentation.screen.recording.RecordingScreen
 import inu.appcenter.walkman.presentation.screen.recordingmodes.RecordingModesScreen
 import inu.appcenter.walkman.presentation.screen.result.RecordingResultsScreen
+import inu.appcenter.walkman.presentation.screen.settings.LanguageSettingsScreen
 import inu.appcenter.walkman.presentation.screen.userinfo.UserInfoScreen
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
@@ -229,6 +231,17 @@ fun MainNavigationScreen(
 
             composable(MainNavigationItem.MyPage.route) {
                 // 마이페이지 화면
+                MyPageScreen(
+                    navController = navController
+                )
+            }
+
+            composable("language_settings") {
+                LanguageSettingsScreen(
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
             }
 
             // 측정 관련 화면들도 추가

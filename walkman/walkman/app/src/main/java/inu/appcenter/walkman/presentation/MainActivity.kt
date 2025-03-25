@@ -1,6 +1,5 @@
 package inu.appcenter.walkman.presentation
 
-
 import android.Manifest
 import android.app.AlertDialog
 import android.app.NotificationManager
@@ -27,11 +26,13 @@ import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.MainViewModel
 import inu.appcenter.walkman.service.StepCounterService
 import inu.appcenter.walkman.service.StepCounterService.Companion.CHANNEL_ID
+import inu.appcenter.walkman.util.LanguageManager
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private lateinit var languageManager: LanguageManager
 
     // 권한 요청 런처
     private val permissionsLauncher = registerForActivityResult(
@@ -45,6 +46,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun attachBaseContext(newBase: Context) {
+        // 언어 설정 적용
+        languageManager = LanguageManager(newBase)
+        super.attachBaseContext(languageManager.updateConfiguration(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // 스플래시 스크린 설정
         installSplashScreen().apply {
@@ -55,6 +62,9 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
+
+        // 언어 매니저 초기화
+        languageManager = LanguageManager(this)
 
         // 상단 상태바를 투명하게 설정
         WindowCompat.setDecorFitsSystemWindows(window, false)

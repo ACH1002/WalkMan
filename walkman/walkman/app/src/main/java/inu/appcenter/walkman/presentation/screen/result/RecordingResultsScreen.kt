@@ -1,6 +1,5 @@
 package inu.appcenter.walkman.presentation.screen.result
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -16,9 +15,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 
@@ -35,7 +36,7 @@ fun RecordingResultsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "측정 완료",
+                        stringResource(id = R.string.title_measurement_complete),
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
@@ -64,7 +65,7 @@ fun RecordingResultsScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "모든 측정 완료",
+                    contentDescription = stringResource(id = R.string.all_measurements_completed),
                     tint = WalkManColors.Primary,
                     modifier = Modifier.size(80.dp)
                 )
@@ -74,7 +75,7 @@ fun RecordingResultsScreen(
 
             // 축하 메시지
             Text(
-                text = "모든 측정이 완료되었습니다!",
+                text = stringResource(id = R.string.all_measurements_completed),
                 style = MaterialTheme.typography.headlineSmall,
                 color = WalkManColors.TextPrimary,
                 fontWeight = FontWeight.Bold,
@@ -84,7 +85,7 @@ fun RecordingResultsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "수집된 데이터는 보행 패턴 분석에 활용됩니다.\n참여해 주셔서 감사합니다.",
+                text = stringResource(id = R.string.data_used_message),
                 style = MaterialTheme.typography.bodyLarge,
                 color = WalkManColors.TextSecondary,
                 textAlign = TextAlign.Center
@@ -108,7 +109,7 @@ fun RecordingResultsScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "수집 완료된 데이터",
+                        text = stringResource(id = R.string.completed_data),
                         style = MaterialTheme.typography.titleMedium,
                         color = WalkManColors.TextPrimary,
                         fontWeight = FontWeight.Bold,
@@ -116,11 +117,11 @@ fun RecordingResultsScreen(
                     )
 
                     // 완료된 모드 목록
-                    CompletedModeItem(title = "영상 보면서 측정")
+                    CompletedModeItem(title = stringResource(id = R.string.video_measurement))
                     Divider(color = WalkManColors.Divider, modifier = Modifier.padding(vertical = 8.dp))
-                    CompletedModeItem(title = "주머니에 넣고 측정")
+                    CompletedModeItem(title = stringResource(id = R.string.pocket_measurement))
                     Divider(color = WalkManColors.Divider, modifier = Modifier.padding(vertical = 8.dp))
-                    CompletedModeItem(title = "걸으면서 텍스트 입력")
+                    CompletedModeItem(title = stringResource(id = R.string.text_measurement))
                 }
             }
 
@@ -140,13 +141,13 @@ fun RecordingResultsScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.Upload,
-                    contentDescription = "업로드 완료",
+                    contentDescription = stringResource(id = R.string.data_uploaded),
                     tint = WalkManColors.Success,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "모든 데이터가 서버에 업로드되었습니다",
+                    text = stringResource(id = R.string.data_uploaded),
                     color = WalkManColors.Success,
                     fontWeight = FontWeight.Medium
                 )
@@ -170,7 +171,7 @@ fun RecordingResultsScreen(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "홈으로 돌아가기",
+                    text = stringResource(id = R.string.btn_home),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -188,7 +189,7 @@ fun CompletedModeItem(title: String) {
     ) {
         Icon(
             imageVector = Icons.Default.Check,
-            contentDescription = "완료",
+            contentDescription = stringResource(id = R.string.recording_completed_item),
             tint = WalkManColors.Success,
             modifier = Modifier.size(20.dp)
         )

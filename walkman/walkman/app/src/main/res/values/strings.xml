@@ -1,3 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">WalkMan</string>
+    <!-- 앱 기본 정보 -->
+    <string name="app_name">GAITX</string>
+    <string name="language_code">en</string>
+
+    <!-- 화면 제목 -->
+    <string name="title_home">Home</string>
+    <string name="title_mypage">My Page</string>
+    <string name="title_recording">Recording</string>
+    <string name="title_measurement_complete">Measurement Complete</string>
+    <string name="title_start">Start</string>
+    <string name="title_user_info">User Information</string>
+
+    <!-- 버튼 -->
+    <string name="btn_next">Next</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_start_recording">Start Recording</string>
+    <string name="btn_stop_recording">Stop Recording</string>
+    <string name="btn_home">Back to Home</string>
+    <string name="btn_back">Back</string>
+    <string name="btn_complete_recording">Complete Recording</string>
+
+    <!-- 사용자 정보 -->
+    <string name="label_name">Name</string>
+    <string name="label_gender">Gender</string>
+    <string name="label_height">Height (cm)</string>
+    <string name="label_weight">Weight (kg)</string>
+    <string name="label_mbti">MBTI (Optional)</string>
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+    <string name="placeholder_name">Enter your name</string>
+    <string name="placeholder_height">Enter your height</string>
+    <string name="placeholder_weight">Enter your weight</string>
+    <string name="placeholder_mbti">Select your MBTI</string>
+    <string name="profile">Profile</string>
+    <string name="default_user">User</string>
+    <string name="profile_height">Height %1$scm</string>
+    <string name="profile_weight">Weight %1$skg</string>
+    <string name="profile_mbti">MBTI: %1$s</string>
+    <string name="edit_profile">Edit Profile</string>
+
+    <!-- 온보딩 화면 -->
+    <string name="welcome_message">Welcome to GAITX!</string>
+    <string name="welcome_desc">GAITX helps analyze your gait patterns for safe walking.</string>
+    <string name="welcome_start">Please provide some information before we start.</string>
+
+    <!-- 홈 화면 -->
+    <string name="today_summary">Today\'s Summary</string>
+    <string name="steps">Steps</string>
+    <string name="distance">km</string>
+    <string name="calories">kcal</string>
+    <string name="daily_goal">Daily Goal: %1$d steps</string>
+    <string name="achievement">%1$d%% Achieved</string>
+    <string name="weekly_stats">Weekly Activity Statistics</string>
+    <string name="start_new_recording">Start New Recording</string>
+    <string name="start_new_recording_desc">Collect walking data</string>
+
+    <!-- 언어 설정 -->
+    <string name="language">Language</string>
+    <string name="language_en">English</string>
+    <string name="language_ko">한국어</string>
+    <string name="language_change_notice">The app will restart when language is changed.</string>
+
+    <!-- 측정 모드 화면 -->
+    <string name="recording_modes_title">Select Recording Mode</string>
+    <string name="recording_completed">Completed Recordings: %1$d / 3</string>
+    <string name="recording_completed_item">Completed</string>
+    <string name="recording_in_progress">Recording in progress...</string>
+    <string name="recording_video_mode">Record While Watching Video</string>
+    <string name="recording_video_desc">Record your walking while watching a video</string>
+    <string name="recording_pocket_mode">Record in Pocket</string>
+    <string name="recording_pocket_desc">Put your phone in your pocket and walk for 90 seconds</string>
+    <string name="recording_text_mode">Record While Typing</string>
+    <string name="recording_text_desc">Enter text while walking</string>
+
+    <!-- 결과 화면 -->
+    <string name="all_measurements_completed">All measurements completed!</string>
+    <string name="data_used_message">Collected data will be used for gait pattern analysis.\nThank you for your participation.</string>
+    <string name="completed_data">Completed Data</string>
+    <string name="video_measurement">Watch Video Measurement</string>
+    <string name="pocket_measurement">In-Pocket Measurement</string>
+    <string name="text_measurement">Text Input Measurement</string>
+    <string name="data_uploaded">All data has been uploaded to the server</string>
+
+    <!-- 설정 -->
+    <string name="settings">Settings</string>
+    <string name="settings_language">Language Settings</string>
+    <string name="settings_notifications">Notification Settings</string>
+    <string name="settings_notifications_desc">Step counter notifications</string>
+    <string name="settings_about">About App</string>
+    <string name="settings_about_desc">Version, Developer Info</string>
+
+    <!-- 데이터 관리 -->
+    <string name="data_management">Data Management</string>
+    <string name="export_data">Export Data</string>
+    <string name="export_data_desc">Save as CSV File</string>
+
+    <!-- RecordingScreen 관련 리소스 -->
+    <string name="person_icon">Person</string>
+    <string name="video_loading">Loading documentary video...</string>
+    <string name="video_recording_caution">Please pay attention to your surroundings while watching the video.</string>
+    <string name="text_input_label">Enter the national anthem</string>
+    <string name="text_input_placeholder">Type the national anthem while walking</string>
+    <string name="sensor_data">Sensor Data</string>
+    <string name="accelerometer">Accelerometer</string>
+    <string name="gyroscope">Gyroscope</string>
+    <string name="data_collection_in_progress">Collecting data</string>
+    <string name="time_remaining">Time Remaining: %1$d seconds</string>
+    <string name="info">Information</string>
+    <string name="recording_time_info">Measurement must be completed within 90 seconds for data to be saved.</string>
+    <string name="recording_cancelled">Measurement Cancelled</string>
+    <string name="recording_cancelled_message">Data has not been saved. Please complete the measurement for 90 seconds.</string>
+    <string name="recording_completed_90s">90-second measurement completed! Uploading data...</string>
+    <string name="uploading_data">Uploading data...</string>
+
+    <!-- 추가 MyPageScreen 리소스 -->
+    <string name="select_mbti">Select MBTI</string>
 </resources>

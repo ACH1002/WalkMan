@@ -15,8 +15,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.theme.WalkManColors
@@ -29,7 +31,7 @@ fun RecordingModesScreen(
     onNavigateToRecording: (RecordingMode) -> Unit,
     onNavigateToResults: () -> Unit,
     onNavigateToUserInfo: () -> Unit,
-    onBackPressed: () -> Unit = {}, // 추가된 뒤로가기 콜백
+    onBackPressed: () -> Unit = {},
     userInfo: UserInfo? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -51,7 +53,7 @@ fun RecordingModesScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "데이터 수집",
+                        text = stringResource(id = R.string.recording_modes_title),
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
@@ -61,7 +63,7 @@ fun RecordingModesScreen(
                     IconButton(onClick = onBackPressed) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "뒤로 가기",
+                            contentDescription = stringResource(id = R.string.btn_back),
                             tint = WalkManColors.Primary
                         )
                     }
@@ -113,7 +115,7 @@ fun RecordingModesScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "측정 모드 선택",
+                text = stringResource(id = R.string.recording_modes_title),
                 style = MaterialTheme.typography.headlineSmall,
                 color = WalkManColors.Primary,
                 fontWeight = FontWeight.Bold,
@@ -122,7 +124,7 @@ fun RecordingModesScreen(
 
             // 측정 완료 상태 표시
             Text(
-                text = "완료된 측정: ${uiState.completedModes.size} / 3",
+                text = stringResource(id = R.string.recording_completed, uiState.completedModes.size),
                 style = MaterialTheme.typography.titleMedium,
                 color = WalkManColors.TextPrimary,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -130,8 +132,8 @@ fun RecordingModesScreen(
 
             // 영상 보기 모드
             ModeCard(
-                title = "영상 보면서 측정",
-                description = "영상을 보면서 걸음을 측정합니다",
+                title = stringResource(id = R.string.recording_video_mode),
+                description = stringResource(id = R.string.recording_video_desc),
                 isCompleted = viewModel.isModeCompleted(RecordingMode.VIDEO),
                 onClick = { onNavigateToRecording(RecordingMode.VIDEO) }
             )
@@ -140,8 +142,8 @@ fun RecordingModesScreen(
 
             // 주머니 모드
             ModeCard(
-                title = "주머니에 넣고 측정",
-                description = "휴대폰을 주머니에 넣고 90초간 걸어주세요",
+                title = stringResource(id = R.string.recording_pocket_mode),
+                description = stringResource(id = R.string.recording_pocket_desc),
                 isCompleted = viewModel.isModeCompleted(RecordingMode.POCKET),
                 onClick = { onNavigateToRecording(RecordingMode.POCKET) }
             )
@@ -150,8 +152,8 @@ fun RecordingModesScreen(
 
             // 텍스트 입력 모드
             ModeCard(
-                title = "걸으면서 텍스트 입력",
-                description = "걸으면서 텍스트를 입력해주세요",
+                title = stringResource(id = R.string.recording_text_mode),
+                description = stringResource(id = R.string.recording_text_desc),
                 isCompleted = viewModel.isModeCompleted(RecordingMode.TEXT),
                 onClick = { onNavigateToRecording(RecordingMode.TEXT) }
             )
@@ -172,7 +174,7 @@ fun RecordingModesScreen(
                 enabled = uiState.completedModes.size == 3 // 모든 모드가 완료된 경우에만 활성화
             ) {
                 Text(
-                    text = "측정 완료하기",
+                    text = stringResource(id = R.string.btn_complete_recording),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -194,7 +196,7 @@ fun RecordingModesScreen(
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        text = "기록 중지",
+                        text = stringResource(id = R.string.btn_stop_recording),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
@@ -221,7 +223,7 @@ fun RecordingModesScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "데이터 기록 중...",
+                        text = stringResource(id = R.string.recording_in_progress),
                         color = WalkManColors.Error,
                         fontWeight = FontWeight.Bold
                     )
@@ -254,7 +256,7 @@ fun UserInfoCard(
             // 사용자 아이콘
             Icon(
                 imageVector = Icons.Default.Person,
-                contentDescription = "사용자",
+                contentDescription = stringResource(id = R.string.profile),
                 tint = WalkManColors.Primary,
                 modifier = Modifier.size(40.dp)
             )
@@ -266,7 +268,7 @@ fun UserInfoCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = userInfo?.name ?: "사용자",
+                    text = userInfo?.name ?: stringResource(id = R.string.default_user),
                     style = MaterialTheme.typography.titleMedium,
                     color = WalkManColors.TextPrimary,
                     fontWeight = FontWeight.Bold
@@ -285,7 +287,7 @@ fun UserInfoCard(
                     }
                     if (!userInfo?.height.isNullOrBlank()) {
                         Text(
-                            text = "키 ${userInfo?.height}cm",
+                            text = stringResource(id = R.string.profile_height, userInfo?.height ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
                             color = WalkManColors.TextSecondary
                         )
@@ -293,7 +295,7 @@ fun UserInfoCard(
                     }
                     if (!userInfo?.weight.isNullOrBlank()) {
                         Text(
-                            text = "체중 ${userInfo?.weight}kg",
+                            text = stringResource(id = R.string.profile_weight, userInfo?.weight ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
                             color = WalkManColors.TextSecondary
                         )
@@ -307,7 +309,7 @@ fun UserInfoCard(
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
-                    contentDescription = "정보 수정",
+                    contentDescription = stringResource(id = R.string.edit_profile),
                     tint = WalkManColors.Primary
                 )
             }
@@ -361,7 +363,7 @@ fun ModeCard(
             if (isCompleted) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "완료됨",
+                    contentDescription = stringResource(id = R.string.recording_completed_item),
                     tint = WalkManColors.Success,
                     modifier = Modifier.size(32.dp)
                 )

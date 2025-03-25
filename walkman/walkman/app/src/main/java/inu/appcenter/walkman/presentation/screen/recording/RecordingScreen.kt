@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.StyledPlayerView
+import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
@@ -229,16 +231,15 @@ fun RecordingScreen(
         }
     }
 
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = when(mode) {
-                            RecordingMode.POCKET -> "바지 주머니에 넣고 측정"
-                            RecordingMode.VIDEO -> "영상 보면서 측정"
-                            RecordingMode.TEXT -> "걸으면서 텍스트 입력"
+                            RecordingMode.POCKET -> stringResource(id = R.string.recording_pocket_mode)
+                            RecordingMode.VIDEO -> stringResource(id = R.string.recording_video_mode)
+                            RecordingMode.TEXT -> stringResource(id = R.string.recording_text_mode)
                         },
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
@@ -248,7 +249,7 @@ fun RecordingScreen(
                     IconButton(onClick = handleBackPress) {
                         Icon(
                             Icons.Default.ArrowBack,
-                            contentDescription = "뒤로 가기",
+                            contentDescription = stringResource(id = R.string.btn_back),
                             tint = WalkManColors.TextPrimary
                         )
                     }
@@ -307,7 +308,7 @@ fun RecordingScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "다큐멘터리 영상 로딩 중...",
+                                        text = stringResource(id = R.string.video_loading),
                                         color = WalkManColors.TextSecondary
                                     )
                                 }
@@ -316,7 +317,7 @@ fun RecordingScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Text(
-                                text = "자연 다큐멘터리를 보면서 자연스럽게 걸어주세요",
+                                text = stringResource(id = R.string.recording_video_desc),
                                 color = WalkManColors.TextSecondary,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -330,7 +331,7 @@ fun RecordingScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    text = "걸으면서 영상을 시청할 때는 주변 환경에 계속 주의를 기울여주세요.",
+                                    text = stringResource(id = R.string.video_recording_caution),
                                     color = WalkManColors.Primary,
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(8.dp),
@@ -351,7 +352,7 @@ fun RecordingScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Person,
-                                        contentDescription = "Person",
+                                        contentDescription = stringResource(id = R.string.person_icon),
                                         tint = WalkManColors.TextSecondary,
                                         modifier = Modifier.size(64.dp)
                                     )
@@ -359,7 +360,7 @@ fun RecordingScreen(
                                     Spacer(modifier = Modifier.height(8.dp))
 
                                     Text(
-                                        text = "휴대폰을 주머니에 넣고\n90초간 걸어주세요",
+                                        text = stringResource(id = R.string.recording_pocket_desc),
                                         color = WalkManColors.TextSecondary,
                                         textAlign = TextAlign.Center
                                     )
@@ -370,8 +371,8 @@ fun RecordingScreen(
                             OutlinedTextField(
                                 value = inputText,
                                 onValueChange = { inputText = it },
-                                label = { Text("애국가를 입력해주세요", color = WalkManColors.TextSecondary) },
-                                placeholder = { Text("걸으면서 애국가를 입력해주세요", color = WalkManColors.TextSecondary) },
+                                label = { Text(stringResource(id = R.string.text_input_label), color = WalkManColors.TextSecondary) },
+                                placeholder = { Text(stringResource(id = R.string.text_input_placeholder), color = WalkManColors.TextSecondary) },
                                 colors = TextFieldDefaults.outlinedTextFieldColors(
                                     unfocusedTextColor = WalkManColors.TextPrimary,
                                     focusedTextColor = WalkManColors.TextPrimary,
@@ -405,7 +406,7 @@ fun RecordingScreen(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            "센서 데이터",
+                            stringResource(id = R.string.sensor_data),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleMedium,
                             color = WalkManColors.TextPrimary
@@ -420,7 +421,7 @@ fun RecordingScreen(
                         ) {
                             // 가속도계 열
                             Column(modifier = Modifier.width(160.dp)) {
-                                Text("가속도계", fontWeight = FontWeight.Bold, color = WalkManColors.TextPrimary)
+                                Text(stringResource(id = R.string.accelerometer), fontWeight = FontWeight.Bold, color = WalkManColors.TextPrimary)
                                 SensorValueRow("X:", sensorDataFormatted?.accX ?: "0.00", "m/s²")
                                 SensorValueRow("Y:", sensorDataFormatted?.accY ?: "0.00", "m/s²")
                                 SensorValueRow("Z:", sensorDataFormatted?.accZ ?: "0.00", "m/s²")
@@ -428,7 +429,7 @@ fun RecordingScreen(
 
                             // 자이로스코프 열
                             Column(modifier = Modifier.width(160.dp)) {
-                                Text("자이로스코프", fontWeight = FontWeight.Bold, color = WalkManColors.TextPrimary)
+                                Text(stringResource(id = R.string.gyroscope), fontWeight = FontWeight.Bold, color = WalkManColors.TextPrimary)
                                 SensorValueRow("X:", sensorDataFormatted?.gyroX ?: "0.00", "rad/s")
                                 SensorValueRow("Y:", sensorDataFormatted?.gyroY ?: "0.00", "rad/s")
                                 SensorValueRow("Z:", sensorDataFormatted?.gyroZ ?: "0.00", "rad/s")
@@ -468,13 +469,13 @@ fun RecordingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "데이터 수집 중입니다",
+                                text = stringResource(id = R.string.data_collection_in_progress),
                                 color = WalkManColors.TextPrimary,
                                 style = MaterialTheme.typography.bodyMedium
                             )
 
                             Text(
-                                text = "남은 시간: ${recordingTimeMax - recordingTimeElapsed}초",
+                                text = stringResource(id = R.string.time_remaining, recordingTimeMax - recordingTimeElapsed),
                                 color = WalkManColors.Primary,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
@@ -490,13 +491,13 @@ fun RecordingScreen(
                         ) {
                             Icon(
                                 Icons.Default.Info,
-                                contentDescription = "Info",
+                                contentDescription = stringResource(id = R.string.info),
                                 tint = WalkManColors.TextSecondary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "측정은 반드시 90초 동안 완료해야 데이터가 저장됩니다.",
+                                text = stringResource(id = R.string.recording_time_info),
                                 color = WalkManColors.TextSecondary,
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center
@@ -562,7 +563,7 @@ fun RecordingScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "측정이 중단되었습니다",
+                            text = stringResource(id = R.string.recording_cancelled),
                             color = WalkManColors.Error,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleSmall,
@@ -572,7 +573,7 @@ fun RecordingScreen(
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = "데이터가 저장되지 않았습니다. 90초 동안 측정을 완료해주세요.",
+                            text = stringResource(id = R.string.recording_cancelled_message),
                             color = WalkManColors.TextPrimary,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
@@ -598,7 +599,7 @@ fun RecordingScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "90초 측정 완료! 데이터 업로드 중...",
+                            text = stringResource(id = R.string.recording_completed_90s),
                             color = WalkManColors.Success,
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleSmall,
@@ -634,7 +635,7 @@ fun RecordingScreen(
                 enabled = !uiState.isUploading
             ) {
                 Text(
-                    text = if (uiState.isRecording) "측정 중지" else "측정 시작",
+                    text = if (uiState.isRecording) stringResource(id = R.string.btn_stop_recording) else stringResource(id = R.string.btn_start_recording),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -663,7 +664,7 @@ fun RecordingScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "데이터 기록 중...",
+                        stringResource(id = R.string.recording_in_progress),
                         color = WalkManColors.Error,
                         fontWeight = FontWeight.Bold
                     )
@@ -691,7 +692,7 @@ fun RecordingScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "데이터 업로드 중...",
+                        stringResource(id = R.string.uploading_data),
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )

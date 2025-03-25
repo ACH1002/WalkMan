@@ -8,9 +8,11 @@ import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,7 +25,7 @@ fun OnboardingScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "시작하기",
+                        stringResource(id = R.string.title_start),
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
@@ -72,7 +74,7 @@ fun OnboardingScreen(
             }
 
             Text(
-                text = "GAITX에 오신 것을 환영합니다!",
+                text = stringResource(id = R.string.welcome_message),
                 style = MaterialTheme.typography.headlineSmall,
                 color = WalkManColors.Primary,
                 fontWeight = FontWeight.Bold,
@@ -82,7 +84,7 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "GAITX는 보행 패턴을 분석하여\n안전한 보행을 도와주는 앱입니다.",
+                text = stringResource(id = R.string.welcome_desc),
                 style = MaterialTheme.typography.bodyLarge,
                 color = WalkManColors.TextPrimary,
                 textAlign = TextAlign.Center
@@ -91,7 +93,7 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "시작하기 전에 몇 가지 정보가 필요해요.",
+                text = stringResource(id = R.string.welcome_start),
                 style = MaterialTheme.typography.bodyMedium,
                 color = WalkManColors.TextSecondary,
                 textAlign = TextAlign.Center
@@ -178,7 +180,7 @@ fun OnboardingScreen(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text(
-                    text = "시작하기",
+                    text = stringResource(id = R.string.title_start),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White

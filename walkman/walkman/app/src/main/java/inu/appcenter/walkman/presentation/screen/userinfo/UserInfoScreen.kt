@@ -18,10 +18,12 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
@@ -37,6 +39,10 @@ fun UserInfoScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val scrollState = rememberScrollState()
+
+    // stringResource 값을 먼저 변수에 저장
+    val maleLabelText = stringResource(id = R.string.gender_male)
+    val femaleLabelText = stringResource(id = R.string.gender_female)
 
     val mbtiTypes = listOf(
         "ISTJ", "ISFJ", "INFJ", "INTJ",
@@ -56,7 +62,7 @@ fun UserInfoScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isEdit) "정보 수정" else "기본 정보 입력",
+                        text = stringResource(id = if (isEdit) R.string.edit_profile else R.string.title_user_info),
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
@@ -66,7 +72,7 @@ fun UserInfoScreen(
                         IconButton(onClick = onNavigateNext) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "뒤로 가기",
+                                contentDescription = stringResource(id = R.string.btn_back),
                                 tint = WalkManColors.TextPrimary
                             )
                         }
@@ -119,7 +125,7 @@ fun UserInfoScreen(
 
             if (!isEdit) {
                 Text(
-                    text = "기본 정보 입력",
+                    text = stringResource(id = R.string.title_user_info),
                     style = MaterialTheme.typography.headlineSmall,
                     color = WalkManColors.Primary,
                     fontWeight = FontWeight.Bold,
@@ -131,8 +137,8 @@ fun UserInfoScreen(
             OutlinedTextField(
                 value = uiState.name,
                 onValueChange = { viewModel.updateName(it) },
-                label = { Text("이름", color = WalkManColors.TextSecondary) },
-                placeholder = { Text("이름을 입력하세요", color = WalkManColors.TextSecondary) },
+                label = { Text(stringResource(id = R.string.label_name), color = WalkManColors.TextSecondary) },
+                placeholder = { Text(stringResource(id = R.string.placeholder_name), color = WalkManColors.TextSecondary) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     unfocusedTextColor = WalkManColors.TextPrimary,
                     focusedTextColor = WalkManColors.TextPrimary,
@@ -154,7 +160,7 @@ fun UserInfoScreen(
 
             // 성별 선택
             Text(
-                text = "성별",
+                text = stringResource(id = R.string.label_gender),
                 style = MaterialTheme.typography.bodyMedium,
                 color = WalkManColors.TextPrimary,
                 modifier = Modifier
@@ -169,37 +175,37 @@ fun UserInfoScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
-                    onClick = { viewModel.updateGender("남성") },
+                    onClick = { viewModel.updateGender(maleLabelText) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (uiState.gender == "남성") WalkManColors.Primary else Color.LightGray
+                        containerColor = if (uiState.gender == maleLabelText) WalkManColors.Primary else Color.LightGray
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        "남성",
-                        color = if (uiState.gender == "남성") Color.White else WalkManColors.TextPrimary
+                        maleLabelText,
+                        color = if (uiState.gender == maleLabelText) Color.White else WalkManColors.TextPrimary
                     )
                 }
 
                 Button(
-                    onClick = { viewModel.updateGender("여성") },
+                    onClick = { viewModel.updateGender(femaleLabelText) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (uiState.gender == "여성") WalkManColors.Primary else Color.LightGray
+                        containerColor = if (uiState.gender == femaleLabelText) WalkManColors.Primary else Color.LightGray
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text(
-                        "여성",
-                        color = if (uiState.gender == "여성") Color.White else WalkManColors.TextPrimary
+                        femaleLabelText,
+                        color = if (uiState.gender == femaleLabelText) Color.White else WalkManColors.TextPrimary
                     )
                 }
             }
 
             // MBTI 선택
             Text(
-                text = "MBTI (선택사항)",
+                text = stringResource(id = R.string.label_mbti),
                 style = MaterialTheme.typography.bodyMedium,
                 color = WalkManColors.TextPrimary,
                 modifier = Modifier
@@ -216,13 +222,13 @@ fun UserInfoScreen(
                     value = uiState.mbti,
                     onValueChange = { },
                     readOnly = true,
-                    label = { Text("MBTI 유형", color = WalkManColors.TextSecondary) },
-                    placeholder = { Text("MBTI를 선택하세요", color = WalkManColors.TextSecondary) },
+                    label = { Text(stringResource(id = R.string.label_mbti), color = WalkManColors.TextSecondary) },
+                    placeholder = { Text(stringResource(id = R.string.placeholder_mbti), color = WalkManColors.TextSecondary) },
                     trailingIcon = {
                         IconButton(onClick = { mbtiDropdownExpanded = true }) {
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "MBTI 선택",
+                                contentDescription = stringResource(id = R.string.select_mbti),
                                 tint = WalkManColors.TextSecondary
                             )
                         }
@@ -258,8 +264,8 @@ fun UserInfoScreen(
             OutlinedTextField(
                 value = uiState.height,
                 onValueChange = { viewModel.updateHeight(it) },
-                label = { Text("키 (cm)", color = WalkManColors.TextSecondary) },
-                placeholder = { Text("키를 입력하세요", color = WalkManColors.TextSecondary) },
+                label = { Text(stringResource(id = R.string.label_height), color = WalkManColors.TextSecondary) },
+                placeholder = { Text(stringResource(id = R.string.placeholder_height), color = WalkManColors.TextSecondary) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     unfocusedTextColor = WalkManColors.TextPrimary,
                     focusedTextColor = WalkManColors.TextPrimary,
@@ -284,8 +290,8 @@ fun UserInfoScreen(
             OutlinedTextField(
                 value = uiState.weight,
                 onValueChange = { viewModel.updateWeight(it) },
-                label = { Text("몸무게 (kg)", color = WalkManColors.TextSecondary) },
-                placeholder = { Text("몸무게를 입력하세요", color = WalkManColors.TextSecondary) },
+                label = { Text(stringResource(id = R.string.label_weight), color = WalkManColors.TextSecondary) },
+                placeholder = { Text(stringResource(id = R.string.placeholder_weight), color = WalkManColors.TextSecondary) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     unfocusedTextColor = WalkManColors.TextPrimary,
                     focusedTextColor = WalkManColors.TextPrimary,
@@ -309,6 +315,9 @@ fun UserInfoScreen(
                 )
             )
 
+            // 저장 버튼 텍스트를 변수에 저장
+            val buttonText = stringResource(id = if (isEdit) R.string.btn_save else R.string.btn_next)
+
             Button(
                 onClick = {
                     viewModel.saveUserInfo()
@@ -325,7 +334,7 @@ fun UserInfoScreen(
                 enabled = uiState.isComplete
             ) {
                 Text(
-                    text = if (isEdit) "저장하기" else "다음",
+                    text = buttonText,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
