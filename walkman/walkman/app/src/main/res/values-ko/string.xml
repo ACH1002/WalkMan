@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <string name="navigation_home">홈</string>
+    <string name="navigation_mbti">MBTI</string>
+    <string name="navigation_ml_model">모델 관리</string>
+    <string name="navigation_mypage">마이페이지</string>
+
     <!-- 앱 기본 정보 -->
     <string name="app_name">GAITX</string>
     <string name="language_code">ko</string>
@@ -55,6 +61,14 @@
     <string name="weekly_stats">주간 활동 통계</string>
     <string name="start_new_recording">새 측정 시작</string>
     <string name="start_new_recording_desc">보행 데이터 수집하기</string>
+    <string name="no_weekly_data">아직 주간 데이터가 없습니다</string>
+    <string name="weekly_chart_placeholder">주간 활동 차트가 여기에 표시됩니다</string>
+    <string name="total_steps">총 걸음 수</string>
+    <string name="total_distance">총 거리(km)</string>
+    <string name="avg_steps_per_day">평균 걸음/일</string>
+    <string name="mbti_gait_correlation">MBTI와 걸음걸이 연관성</string>
+    <string name="mbti_gait_analysis_description">수집된 데이터를 바탕으로 MBTI 성격 유형과 걸음걸이 패턴의 연관성을 분석해보세요.</string>
+    <string name="view_details">자세히 보기</string>
 
     <!-- 언어 설정 -->
     <string name="language">언어</string>
@@ -116,4 +130,7 @@
 
     <!-- 추가 MyPageScreen 리소스 -->
     <string name="select_mbti">MBTI 선택</string>
+
+    <!-- 한국어 리소스 (values/strings.xml) -->
+    <string name="date_format">yyyy년 MM월 dd일</string>
 </resources>

@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +56,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.HomeViewModel
+import inu.appcenter.walkman.util.LanguageManager
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -66,6 +68,12 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onStartNewRecording: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val languageManager = remember { LanguageManager(context) }
+
+    // 언어 코드에 따라 리컴포지션 트리거
+    val languageCode by remember { mutableStateOf(languageManager.getLanguageCode()) }
+
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -112,17 +120,16 @@ fun HomeScreen(
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 오늘의 요약 카드
             TodaySummaryCard(
                 steps = uiState.todaySteps,
                 distance = uiState.todayDistance,
                 calories = uiState.todayCalories,
-                isLoading = uiState.isLoading
+                isLoading = uiState.isLoading,
+                languageManager = languageManager
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 주간 걸음 수 차트 카드
             WeeklyStepsCard(
                 weeklyData = uiState.weeklyStepData,
                 isLoading = uiState.isLoading
@@ -130,12 +137,10 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // MBTI 분석 요약
             MbtiAnalysisCard()
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 새 측정 시작 버튼
             Button(
                 onClick = onStartNewRecording,
                 colors = ButtonDefaults.buttonColors(
@@ -148,12 +153,12 @@ fun HomeScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.DirectionsWalk,
-                    contentDescription = "걷기",
+                    contentDescription = stringResource(R.string.start_new_recording),
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "새 측정 시작하기",
+                    text = stringResource(R.string.start_new_recording),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -167,7 +172,8 @@ fun TodaySummaryCard(
     steps: Int,
     distance: Float,
     calories: Float,
-    isLoading: Boolean
+    isLoading: Boolean,
+    languageManager: LanguageManager
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -186,14 +192,17 @@ fun TodaySummaryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "오늘의 요약",
+                    text = stringResource(R.string.today_summary),
                     style = MaterialTheme.typography.titleMedium,
                     color = WalkManColors.TextPrimary,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREA).format(Calendar.getInstance().time),
+                    text = SimpleDateFormat(
+                        stringResource(R.string.date_format),
+                        Locale(languageManager.getLanguageCode())
+                    ).format(Calendar.getInstance().time),
                     style = MaterialTheme.typography.bodySmall,
                     color = WalkManColors.TextSecondary
                 )
@@ -215,24 +224,21 @@ fun TodaySummaryCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    // 걸음 수
                     StatItem(
                         value = steps.toString(),
-                        label = "걸음",
+                        label = stringResource(R.string.steps),
                         color = WalkManColors.Primary
                     )
 
-                    // 거리
                     StatItem(
                         value = String.format("%.2f", distance),
-                        label = "km",
+                        label = stringResource(R.string.distance),
                         color = WalkManColors.Success
                     )
 
-                    // 칼로리
                     StatItem(
                         value = String.format("%.1f", calories),
-                        label = "kcal",
+                        label = stringResource(R.string.calories),
                         color = WalkManColors.Error
                     )
                 }
@@ -240,12 +246,11 @@ fun TodaySummaryCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 진행률 표시
-            val goalSteps = 10000 // 목표 걸음 수
+            val goalSteps = 10000
             val progress = (steps.toFloat() / goalSteps).coerceIn(0f, 1f)
 
             Text(
-                text = "일일 목표: $goalSteps 걸음",
+                text = stringResource(R.string.daily_goal, goalSteps),
                 style = MaterialTheme.typography.bodySmall,
                 color = WalkManColors.TextSecondary
             )
@@ -262,7 +267,7 @@ fun TodaySummaryCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "${(progress * 100).toInt()}% 달성",
+                text = stringResource(R.string.achievement, (progress * 100).toInt()),
                 style = MaterialTheme.typography.bodySmall,
                 color = WalkManColors.Primary,
                 modifier = Modifier.align(Alignment.End)
@@ -273,7 +278,7 @@ fun TodaySummaryCard(
 
 @Composable
 fun WeeklyStepsCard(
-    weeklyData: List<Any>, // StepCountData 타입이지만 예시를 위해 Any로 지정
+    weeklyData: List<Any>,
     isLoading: Boolean
 ) {
     Card(
@@ -293,7 +298,7 @@ fun WeeklyStepsCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "주간 활동 통계",
+                    text = stringResource(R.string.weekly_stats),
                     style = MaterialTheme.typography.titleMedium,
                     color = WalkManColors.TextPrimary,
                     fontWeight = FontWeight.Bold
@@ -301,7 +306,7 @@ fun WeeklyStepsCard(
 
                 Icon(
                     imageVector = Icons.Default.TrendingUp,
-                    contentDescription = "추세",
+                    contentDescription = stringResource(R.string.weekly_stats),
                     tint = WalkManColors.Primary
                 )
             }
@@ -318,7 +323,6 @@ fun WeeklyStepsCard(
                     CircularProgressIndicator(color = WalkManColors.Primary)
                 }
             } else if (weeklyData.isEmpty()) {
-                // 데이터가 없는 경우
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -326,15 +330,13 @@ fun WeeklyStepsCard(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "아직 주간 데이터가 없습니다",
+                        text = stringResource(R.string.no_weekly_data),
                         style = MaterialTheme.typography.bodyLarge,
                         color = WalkManColors.TextPrimary,
                         fontWeight = FontWeight.Medium
                     )
                 }
             } else {
-                // 여기에 실제 주간 차트를 구현할 수 있습니다.
-                // 샘플로 더미 차트 표시
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -343,7 +345,7 @@ fun WeeklyStepsCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "주간 활동 차트가 여기에 표시됩니다",
+                        text = stringResource(R.string.weekly_chart_placeholder),
                         style = MaterialTheme.typography.bodyMedium,
                         color = WalkManColors.TextPrimary
                     )
@@ -351,26 +353,25 @@ fun WeeklyStepsCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 주간 통계 요약
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     WeeklyStat(
                         value = "0",
-                        label = "총 걸음 수",
+                        label = stringResource(R.string.total_steps),
                         color = WalkManColors.Primary
                     )
 
                     WeeklyStat(
                         value = "0",
-                        label = "총 거리(km)",
+                        label = stringResource(R.string.total_distance),
                         color = WalkManColors.Success
                     )
 
                     WeeklyStat(
                         value = "0",
-                        label = "평균 걸음/일",
+                        label = stringResource(R.string.avg_steps_per_day),
                         color = WalkManColors.Primary
                     )
                 }
@@ -450,7 +451,7 @@ fun MbtiAnalysisCard() {
             modifier = Modifier.padding(16.dp)
         ) {
             Text(
-                text = "MBTI와 걸음걸이 연관성",
+                text = stringResource(R.string.mbti_gait_correlation),
                 style = MaterialTheme.typography.titleMedium,
                 color = WalkManColors.Primary,
                 fontWeight = FontWeight.Bold
@@ -459,7 +460,7 @@ fun MbtiAnalysisCard() {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "수집된 데이터를 바탕으로 MBTI 성격 유형과 걸음걸이 패턴의 연관성을 분석해보세요.",
+                text = stringResource(R.string.mbti_gait_analysis_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = WalkManColors.TextPrimary
             )
@@ -473,7 +474,7 @@ fun MbtiAnalysisCard() {
                 ),
                 modifier = Modifier.align(Alignment.End)
             ) {
-                Text("자세히 보기")
+                Text(stringResource(R.string.view_details))
             }
         }
     }

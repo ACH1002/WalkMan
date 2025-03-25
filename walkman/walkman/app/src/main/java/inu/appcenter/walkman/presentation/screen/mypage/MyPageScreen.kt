@@ -36,6 +36,16 @@ fun MyPageScreen(
     val uiState by userInfoViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
+    val genderText = when(uiState.gender) {
+        stringResource(id = R.string.gender_male) -> stringResource(id = R.string.gender_male)
+        stringResource(id = R.string.gender_female) -> stringResource(id = R.string.gender_female)
+        "남성" -> stringResource(id = R.string.gender_male)
+        "여성" -> stringResource(id = R.string.gender_female)
+        "Male" -> stringResource(id = R.string.gender_male)
+        "Female" -> stringResource(id = R.string.gender_female)
+        else -> uiState.gender
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -68,10 +78,10 @@ fun MyPageScreen(
                     containerColor = WalkManColors.CardBackground
                 ),
                 shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // 프로필 아이콘
@@ -109,7 +119,7 @@ fun MyPageScreen(
                     ) {
                         if (uiState.gender.isNotEmpty()) {
                             Text(
-                                text = uiState.gender,
+                                text = genderText,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = WalkManColors.TextSecondary
                             )

@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,6 +42,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.screen.home.HomeScreen
@@ -56,34 +58,34 @@ import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
 sealed class MainNavigationItem(
     val route: String,
-    val title: String,
+    val titleResId: Int, // 리소스 ID로 변경
     val selectedIcon: @Composable () -> Unit,
     val unselectedIcon: @Composable () -> Unit
 ) {
     object Home : MainNavigationItem(
         route = "home",
-        title = "홈",
+        titleResId = R.string.navigation_home, // 리소스 추가
         selectedIcon = { Icon(Icons.Filled.Home, contentDescription = "홈") },
         unselectedIcon = { Icon(Icons.Outlined.Home, contentDescription = "홈") }
     )
 
     object MBTI : MainNavigationItem(
         route = "mbti",
-        title = "MBTI",
+        titleResId = R.string.navigation_mbti, // 리소스 추가
         selectedIcon = { Icon(Icons.Filled.Psychology, contentDescription = "MBTI") },
         unselectedIcon = { Icon(Icons.Outlined.Psychology, contentDescription = "MBTI") }
     )
 
     object MLModel : MainNavigationItem(
         route = "ml_model",
-        title = "모델 관리",
+        titleResId = R.string.navigation_ml_model, // 리소스 추가
         selectedIcon = { Icon(Icons.Filled.Settings, contentDescription = "모델 관리") },
         unselectedIcon = { Icon(Icons.Outlined.Settings, contentDescription = "모델 관리") }
     )
 
     object MyPage : MainNavigationItem(
         route = "my_page",
-        title = "마이페이지",
+        titleResId = R.string.navigation_mypage, // 리소스 추가
         selectedIcon = { Icon(Icons.Filled.Person, contentDescription = "마이페이지") },
         unselectedIcon = { Icon(Icons.Outlined.Person, contentDescription = "마이페이지") }
     )
@@ -165,7 +167,7 @@ fun MainNavigationScreen(
                             },
                             label = {
                                 Text(
-                                    text = item.title,
+                                    text = stringResource(item.titleResId),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontSize = 11.sp,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
