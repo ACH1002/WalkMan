@@ -260,8 +260,9 @@ class MainActivity : ComponentActivity() {
 
 
     private fun startAppUsageTracking() {
-        if (hasUsageStatsPermission() &&
-            (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this))) {
+        Log.d("MainActivity", "Starting AppUsageTrackingService")
+
+        try {
             val intent = Intent(this, AppUsageTrackingService::class.java).apply {
                 action = AppUsageTrackingService.ACTION_START
             }
@@ -271,27 +272,38 @@ class MainActivity : ComponentActivity() {
             } else {
                 startService(intent)
             }
+
+            Log.d("MainActivity", "AppUsageTrackingService 시작 요청 완료")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "앱 사용 추적 서비스 시작 실패", e)
         }
     }
 
     private fun hasUsageStatsPermission(): Boolean {
-        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                Process.myUid(),
-                packageName
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            appOps.checkOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                Process.myUid(),
-                packageName
-            )
-        }
+        try {
+            val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    Process.myUid(),
+                    packageName
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                appOps.checkOpNoThrow(
+                    AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    Process.myUid(),
+                    packageName
+                )
+            }
 
-        return mode == AppOpsManager.MODE_ALLOWED
+            val hasPermission = mode == AppOpsManager.MODE_ALLOWED
+            Log.d("MainActivity", "Usage stats permission: $hasPermission")
+            return hasPermission
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error checking usage stats permission", e)
+            return false
+        }
     }
 
     override fun onDestroy() {
@@ -302,5 +314,24 @@ class MainActivity : ComponentActivity() {
             action = AppUsageTrackingService.ACTION_STOP
         }
         startService(intent)
+    }
+
+    private fun checkAndRequestUsageStatsPermission() {
+        if (!hasUsageStatsPermission()) {
+            AlertDialog.Builder(this)
+                .setTitle("사용 통계 접근 권한 필요")
+                .setMessage("걷는 동안 소셜미디어 사용량을 측정하기 위해 '사용 통계 접근' 권한이 필요합니다. 설정 화면에서 GAITX 앱에 권한을 허용해주세요.")
+                .setPositiveButton("설정으로 이동") { _, _ ->
+                    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                    startActivity(intent)
+                }
+                .setNegativeButton("취소", null)
+                .show()
+
+            return
+        }
+
+        // 권한이 있는 경우 서비스 시작
+        startAppUsageTracking()
     }
 }

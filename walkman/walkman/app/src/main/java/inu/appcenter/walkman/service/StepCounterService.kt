@@ -1,14 +1,19 @@
 package inu.appcenter.walkman.service
 
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.usage.UsageStatsManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.pm.ServiceInfo
+import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -21,6 +26,7 @@ import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
+import inu.appcenter.walkman.domain.repository.SensorRepository
 import inu.appcenter.walkman.domain.repository.StepCountRepository
 import inu.appcenter.walkman.domain.repository.UserRepository
 import inu.appcenter.walkman.presentation.MainActivity
@@ -65,14 +71,16 @@ class StepCounterService : Service(), SensorEventListener {
     @Inject
     lateinit var appUsageRepository: AppUsageRepository
 
-    private var notificationUpdateJob: Job? = null
-
     @Inject
     lateinit var stepCountRepository: StepCountRepository
 
     @Inject
+    lateinit var sensorRepository: SensorRepository
+
+    @Inject
     lateinit var userRepository: UserRepository
 
+    private var notificationUpdateJob: Job? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var sensorManager: SensorManager
     private var stepDetector: Sensor? = null
@@ -86,6 +94,16 @@ class StepCounterService : Service(), SensorEventListener {
     private var lastSaveTimeMillis = 0L
     private var strideLength: Float = 0.75f  // 기본값 (미터 단위)
     private var userWeight: Float = 60f      // 기본값 (kg 단위)
+
+    // 현재 사용 중인 소셜미디어 앱 정보를 저장하는 변수
+    private var currentSocialMediaApp: String = ""
+    private var currentSocialMediaStartTime: Long = 0L
+
+    // 알림 갱신 주기(밀리초)
+    private val NOTIFICATION_UPDATE_INTERVAL = 5000L // 5초
+
+    // 앱 사용 상태 변경 수신 브로드캐스트 리시버
+    private lateinit var foregroundAppReceiver: BroadcastReceiver
 
     override fun onCreate() {
         super.onCreate()
@@ -111,6 +129,49 @@ class StepCounterService : Service(), SensorEventListener {
 
         // 사용자 정보 로드
         loadUserInfo()
+
+        // 브로드캐스트 리시버 등록
+        foregroundAppReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == AppUsageTrackingService.ACTION_FOREGROUND_APP_CHANGED) {
+                    val packageName = intent.getStringExtra(AppUsageTrackingService.EXTRA_PACKAGE_NAME) ?: ""
+                    val appName = intent.getStringExtra(AppUsageTrackingService.EXTRA_APP_NAME) ?: ""
+                    val isSocialMedia = intent.getBooleanExtra(AppUsageTrackingService.EXTRA_IS_SOCIAL_MEDIA, false)
+
+                    Log.d(TAG, "앱 변경 감지: $packageName, $appName, 소셜미디어: $isSocialMedia")
+
+                    if (isSocialMedia) {
+                        currentSocialMediaApp = packageName
+                        currentSocialMediaStartTime = System.currentTimeMillis()
+
+                        // 즉시 알림 업데이트
+                        updateNotification(packageName, 0)
+                    } else {
+                        // 소셜미디어 앱이 아닌 경우
+                        currentSocialMediaApp = ""
+                        currentSocialMediaStartTime = 0
+
+                        // 알림 업데이트
+                        updateNotification()
+                    }
+                }
+            }
+        }
+
+        // 브로드캐스트 리시버 등록 시 Android 13 이상에서는 RECEIVER_NOT_EXPORTED 사용
+        val intentFilter = IntentFilter(AppUsageTrackingService.ACTION_FOREGROUND_APP_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(
+                foregroundAppReceiver,
+                intentFilter,
+                RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            // 이전 버전에서는 기존 방식 유지
+            registerReceiver(foregroundAppReceiver, intentFilter)
+        }
+
+        Log.d(TAG, "Broadcast receiver registered for foreground app changes")
     }
 
     // 날짜 변경 확인 및 걸음 수 초기화
@@ -160,7 +221,7 @@ class StepCounterService : Service(), SensorEventListener {
             // 주기적인 WakeLock 갱신을 위한 작업 예약
             serviceScope.launch {
                 while (true) {
-                    kotlinx.coroutines.delay(WAKE_LOCK_TIMEOUT / 2)
+                    delay(WAKE_LOCK_TIMEOUT / 2)
                     renewWakeLock()
                 }
             }
@@ -228,7 +289,7 @@ class StepCounterService : Service(), SensorEventListener {
         // 센서 리스너 등록
         registerStepSensor()
 
-        // 알림 업데이트 시작 (추가된 부분)
+        // 알림 업데이트 시작
         startNotificationUpdates()
 
         // 서비스가 죽었을 때 자동으로 재시작
@@ -250,7 +311,28 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onDestroy() {
-        notificationUpdateJob?.cancel()
+        Log.d(TAG, "Service onDestroy")
+
+        try {
+            // 알림 업데이트 작업 취소
+            notificationUpdateJob?.cancel()
+
+            // 센서 리스너 해제
+            sensorManager.unregisterListener(this)
+
+            // 브로드캐스트 리시버 해제
+            unregisterReceiver(foregroundAppReceiver)
+
+            // WakeLock 해제
+            wakeLock?.let {
+                if (it.isHeld) {
+                    it.release()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onDestroy", e)
+        }
+
         super.onDestroy()
     }
 
@@ -347,19 +429,19 @@ class StepCounterService : Service(), SensorEventListener {
         return walkingMet * userWeight * timeHours
     }
 
-    private fun createNotification(text: String = "걸음 측정 및 앱 사용 모니터링 중"): Notification {
+    private fun createNotification(text: String = "걸음 측정 및 앱 사용 모니터링 중", socialMediaInfo: String? = null): Notification {
         // 알림 채널 생성 (Android O 이상)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "걸음 측정 및 앱 사용 모니터링",
-                NotificationManager.IMPORTANCE_MIN
+                NotificationManager.IMPORTANCE_LOW // LOW로 설정하여 소리 없이 표시
             )
             channel.setSound(null, null)
             channel.enableVibration(false)
             channel.enableLights(false)
             channel.setShowBadge(false)
-            channel.lockscreenVisibility = Notification.VISIBILITY_SECRET
+            channel.lockscreenVisibility = Notification.VISIBILITY_PUBLIC // 잠금화면에서도 보이도록 설정
 
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
@@ -384,53 +466,228 @@ class StepCounterService : Service(), SensorEventListener {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // 알림 생성
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        // 알림 빌더 생성
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("GAITX 서비스 실행 중")
             .setContentText(text)
             .setSmallIcon(R.drawable.ic_logo_gaitx) // 적절한 아이콘으로 변경
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_MIN) // 최소 우선순위
+            .setPriority(NotificationCompat.PRIORITY_LOW) // 낮은 우선순위
             .setOngoing(true) // 사용자가 스와이프로 제거할 수 없게 설정
-            .setSilent(true) // 소리 없음
-            .setVisibility(NotificationCompat.VISIBILITY_SECRET) // 잠금화면에서 숨김
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // 잠금화면에서도 표시
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "중지", stopPendingIntent)
-            .build()
+
+        // 소셜미디어 사용 정보가 있으면 확장된 알림 스타일 적용
+        if (socialMediaInfo != null) {
+            // 확장된 알림 스타일 설정
+            val style = NotificationCompat.BigTextStyle()
+                .bigText("$text\n\n$socialMediaInfo")
+            builder.setStyle(style)
+
+            // 중요도 높임
+            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+            // 현재 사용 중인 소셜미디어 앱을 강조하기 위해 색상 설정
+            builder.setColorized(true)
+            builder.setColor(Color.parseColor("#3F51B5")) // 보라색 계열
+        }
+
+        return builder.build()
     }
 
-    private fun updateNotification() {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID, createNotification("걸음 측정 및 앱 사용 모니터링 중"))
+    // 오늘 총 소셜미디어 사용 시간 가져오기
+    private suspend fun getTotalSocialMediaUsageToday(): Long {
+        try {
+            val appUsageData = appUsageRepository.getAppUsageData().first()
+            return appUsageData.sumOf { it.usageDurationMs }
+        } catch (e: Exception) {
+            Log.e(TAG, "소셜미디어 사용 시간 조회 실패", e)
+            return 0
+        }
+    }
+
+    // 알림 업데이트 메서드 - suspend 키워드 제거됨
+    private fun updateNotification(currentSocialApp: String? = null, usageDuration: Long = 0) {
+        try {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            // 기본 알림 텍스트
+            var notificationText = "걸음 측정 및 앱 사용 모니터링 중"
+            var socialMediaInfo: String? = null
+
+            // 현재 소셜미디어 앱 사용 중인 경우
+            if (currentSocialApp != null && currentSocialApp.isNotEmpty()) {
+                val appName = getAppName(currentSocialApp)
+                val durationText = formatDuration(usageDuration)
+
+                notificationText = "현재 $appName 사용 중"
+                socialMediaInfo = "$appName 사용 시간: $durationText\n걸으면서 소셜미디어를 오래 사용하면 주의력이 분산될 수 있습니다."
+            } else {
+                // 소셜미디어를 사용하지 않는 경우에는 기본 메시지만 표시
+                // 총 사용시간은 별도의 코루틴에서 업데이트
+                serviceScope.launch {
+                    try {
+                        val totalUsage = getTotalSocialMediaUsageToday()
+                        if (totalUsage > 0) {
+                            val updatedText = "오늘 걸은 중 소셜미디어 사용 시간: ${formatDuration(totalUsage)}"
+                            notificationManager.notify(
+                                NOTIFICATION_ID,
+                                createNotification(updatedText)
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "총 사용시간 업데이트 실패: ${e.message}", e)
+                    }
+                }
+            }
+
+            notificationManager.notify(NOTIFICATION_ID, createNotification(notificationText, socialMediaInfo))
+        } catch (e: Exception) {
+            Log.e(TAG, "알림 업데이트 실패: ${e.message}", e)
+        }
+    }
+
+    // 앱 이름 가져오기 함수
+    private fun getAppName(packageName: String): String {
+        // 일반적인 소셜미디어 앱 이름 매핑
+        val appNames = mapOf(
+            "com.google.android.youtube" to "YouTube",
+            "com.instagram.android" to "Instagram",
+            "com.twitter.android" to "Twitter",
+            "com.zhiliaoapp.musically" to "TikTok",
+            "com.facebook.android" to "Facebook",
+            "com.instagram.barcelona" to "Threads",
+            "com.snapchat.android" to "Snapchat",
+            "com.linkedin.android" to "LinkedIn",
+            "com.pinterest" to "Pinterest",
+            "com.whatsapp" to "WhatsApp",
+            "com.facebook.orca" to "Messenger",
+            "com.vkontakte.android" to "VK",
+            "com.reddit.frontpage" to "Reddit",
+            "org.telegram.messenger" to "Telegram",
+            "com.discord" to "Discord"
+        )
+
+        // 매핑된 이름이 있으면 사용, 없으면 패키지 매니저에서 이름 가져오기
+        return appNames[packageName] ?: try {
+            val packageManager = applicationContext.packageManager
+            val applicationInfo = packageManager.getApplicationInfo(packageName, 0)
+            packageManager.getApplicationLabel(applicationInfo).toString()
+        } catch (e: Exception) {
+            // 앱 이름을 가져올 수 없는 경우 패키지 이름의 마지막 부분 사용
+            packageName.substringAfterLast('.')
+        }
     }
 
     private fun startNotificationUpdates() {
         notificationUpdateJob = serviceScope.launch {
             while (true) {
                 try {
-                    // 소셜 미디어 앱 사용 데이터 가져오기
-                    val appUsageData = appUsageRepository.getAppUsageData().first()
+                    // 현재 걷기 중인지 확인
+                    val isWalking = sensorRepository.isRecording().first()
 
-                    // 총 사용 시간 계산
-                    val totalUsageTime = appUsageData.sumOf { it.usageDurationMs }
-                    val formattedTime = formatDuration(totalUsageTime)
+                    if (isWalking) {
+                        // 현재 사용 중인 앱 확인
+                        val currentPackage = getCurrentForegroundApp()
 
-                    // 알림 업데이트
-                    val notificationText = if (totalUsageTime > 0) {
-                        "걷는 중 소셜 미디어 사용 시간: $formattedTime"
+                        if (isSocialMediaApp(currentPackage)) {
+                            // 소셜미디어 앱을 사용 중인 경우
+                            if (currentSocialMediaApp != currentPackage) {
+                                // 새로운 소셜미디어 앱으로 전환된 경우
+                                currentSocialMediaApp = currentPackage
+                                currentSocialMediaStartTime = System.currentTimeMillis()
+                            }
+
+                            // 현재 사용 시간 계산
+                            val usageDuration = System.currentTimeMillis() - currentSocialMediaStartTime
+
+                            // 알림 업데이트
+                            updateNotification(currentSocialMediaApp, usageDuration)
+                        } else {
+                            // 소셜미디어 앱을 사용하지 않는 경우
+                            if (currentSocialMediaApp.isNotEmpty()) {
+                                // 이전에 소셜미디어 앱을 사용하다가 중단한 경우
+                                currentSocialMediaApp = ""
+                                currentSocialMediaStartTime = 0L
+                            }
+
+                            // 알림 업데이트 (기본 알림 표시)
+                            updateNotification()
+                        }
                     } else {
-                        "걸음 측정 및 앱 사용 모니터링 중"
+                        // 걷지 않는 중인 경우
+                        currentSocialMediaApp = ""
+                        currentSocialMediaStartTime = 0L
+
+                        // 기본 알림 표시
+                        updateNotification()
                     }
 
-                    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    notificationManager.notify(NOTIFICATION_ID, createNotification(notificationText))
-
-                    delay(30000) // 30초마다 업데이트
+                    delay(NOTIFICATION_UPDATE_INTERVAL) // 5초마다 업데이트
                 } catch (e: Exception) {
                     Log.e(TAG, "알림 업데이트 오류", e)
-                    delay(60000) // 오류 발생 시 1분 후 재시도
+                    delay(NOTIFICATION_UPDATE_INTERVAL * 2) // 오류 발생 시 10초 후 재시도
                 }
             }
         }
+    }
+
+    private fun getCurrentForegroundApp(): String {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                val usm = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+                val time = System.currentTimeMillis()
+
+                // 최근 1분 간의 앱 사용 기록 조회
+                val appList = usm.queryUsageStats(
+                    UsageStatsManager.INTERVAL_DAILY,
+                    time - 60 * 1000, // 1분 전부터
+                    time
+                )
+
+                if (appList != null && appList.isNotEmpty()) {
+                    // 최근 사용된 앱을 기준으로 정렬
+                    val sortedApps = appList.sortedByDescending { it.lastTimeUsed }
+
+                    // 최근 사용된 앱 반환
+                    sortedApps.firstOrNull()?.packageName ?: ""
+                } else {
+                    ""
+                }
+            } else {
+                // API 21 미만에서는 ActivityManager 사용
+                val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+                am.runningAppProcesses?.firstOrNull {
+                    it.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
+                }?.processName ?: ""
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "현재 앱 확인 실패: ${e.message}", e)
+            ""
+        }
+    }
+
+    // 소셜미디어 앱인지 확인하는 함수
+    private fun isSocialMediaApp(packageName: String): Boolean {
+        val socialApps = listOf(
+            "com.google.android.youtube",
+            "com.instagram.android",
+            "com.twitter.android",
+            "com.zhiliaoapp.musically",
+            "com.facebook.android",
+            "com.instagram.barcelona",
+            "com.snapchat.android",
+            "com.linkedin.android",
+            "com.pinterest",
+            "com.whatsapp",
+            "com.facebook.orca",
+            "com.vkontakte.android",
+            "com.reddit.frontpage",
+            "org.telegram.messenger",
+            "com.discord"
+        )
+
+        return socialApps.contains(packageName)
     }
 
     private fun formatDuration(durationMs: Long): String {
@@ -439,7 +696,7 @@ class StepCounterService : Service(), SensorEventListener {
         val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
 
         return when {
-            hours > 0 -> "${hours}시간 ${minutes}분"
+            hours > 0 -> "${hours}시간 ${minutes}분 ${seconds}초"
             minutes > 0 -> "${minutes}분 ${seconds}초"
             else -> "${seconds}초"
         }

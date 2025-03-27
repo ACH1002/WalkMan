@@ -150,4 +150,6 @@
     <string name="notification_permission_message">Notification permission is required for step tracking functionality. Please allow this permission in settings.</string>
     <string name="go_to_settings">Go to Settings</string>
     <string name="cancel">Cancel</string>
+
+    <string name="walking_warning_message">Be cautious while using your smartphone while walking. Stay focused on your surroundings and minimize distractions during walking.</string>
 </resources>

@@ -2,8 +2,10 @@ package inu.appcenter.walkman.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import inu.appcenter.walkman.domain.model.AppUsageData
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
+import inu.appcenter.walkman.service.StepCounterService.Companion.TAG
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -69,41 +71,63 @@ class AppUsageRepositoryImpl @Inject constructor(
 
     override suspend fun trackAppUsage(packageName: String, appName: String, durationMs: Long) {
         // 추적 대상 앱인 경우에만 기록
-        if (!trackedApps.containsKey(packageName)) return
+        if (!trackedApps.containsKey(packageName)) {
+            Log.d(TAG, "추적 대상이 아닌 앱: $packageName, 무시됨")
+            return
+        }
 
-        val currentData = _appUsageData.value.toMutableList()
-        val existingDataIndex = currentData.indexOfFirst { it.packageName == packageName }
+        // 너무 짧은 사용 시간 필터링
+        if (durationMs < 500) {
+            Log.d(TAG, "너무 짧은 사용 시간: ${durationMs}ms, 무시됨")
+            return
+        }
 
-        if (existingDataIndex >= 0) {
-            // 기존 데이터 업데이트
-            val existingData = currentData[existingDataIndex]
-            currentData[existingDataIndex] = existingData.copy(
-                usageDurationMs = existingData.usageDurationMs + durationMs,
-                lastUsedTimestamp = System.currentTimeMillis()
-            )
-        } else {
-            // 새 데이터 추가
-            currentData.add(
-                AppUsageData(
-                    packageName = packageName,
-                    appName = appName,
-                    usageDurationMs = durationMs,
+        try {
+            val currentData = _appUsageData.value.toMutableList()
+            val existingDataIndex = currentData.indexOfFirst { it.packageName == packageName }
+
+            if (existingDataIndex >= 0) {
+                // 기존 데이터 업데이트
+                val existingData = currentData[existingDataIndex]
+                val newDuration = existingData.usageDurationMs + durationMs
+
+                currentData[existingDataIndex] = existingData.copy(
+                    usageDurationMs = newDuration,
                     lastUsedTimestamp = System.currentTimeMillis()
                 )
-            )
-        }
 
-        _appUsageData.value = currentData
+                Log.d(TAG, "앱 사용 데이터 업데이트: $appName, 총 ${newDuration}ms")
+            } else {
+                // 새 데이터 추가
+                currentData.add(
+                    AppUsageData(
+                        packageName = packageName,
+                        appName = appName,
+                        usageDurationMs = durationMs,
+                        lastUsedTimestamp = System.currentTimeMillis()
+                    )
+                )
 
-        // SharedPreferences에 저장
-        val editor = prefs.edit()
-        val updated = currentData.find { it.packageName == packageName }
-        if (updated != null) {
-            editor.putLong("${KEY_APP_USAGE_PREFIX}${updated.packageName}", updated.usageDurationMs)
-            editor.putString("${KEY_APP_NAME_PREFIX}${updated.packageName}", updated.appName)
-            editor.putLong("${KEY_LAST_USED_PREFIX}${updated.packageName}", updated.lastUsedTimestamp)
+                Log.d(TAG, "새 앱 사용 데이터 추가: $appName, ${durationMs}ms")
+            }
+
+            _appUsageData.value = currentData
+
+            // SharedPreferences에 저장
+            val editor = prefs.edit()
+            val updated = currentData.find { it.packageName == packageName }
+
+            if (updated != null) {
+                editor.putLong("${KEY_APP_USAGE_PREFIX}${updated.packageName}", updated.usageDurationMs)
+                editor.putString("${KEY_APP_NAME_PREFIX}${updated.packageName}", updated.appName)
+                editor.putLong("${KEY_LAST_USED_PREFIX}${updated.packageName}", updated.lastUsedTimestamp)
+                editor.apply()
+
+                Log.d(TAG, "앱 사용 데이터 저장 완료: $appName")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "앱 사용 데이터 저장 중 오류: ${e.message}", e)
         }
-        editor.apply()
     }
 
     override suspend fun resetAppUsage() {

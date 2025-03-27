@@ -151,4 +151,6 @@
     <string name="notification_permission_message">걸음 수 추적 기능을 위해서는 알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.</string>
     <string name="go_to_settings">설정으로 이동</string>
     <string name="cancel">취소</string>
+
+    <string name="walking_warning_message">걷는 중에는 스마트폰 사용에 주의하세요. 주변 상황과 안전에 집중하고, 보행 중 디스트랙션을 최소화하세요.</string>
 </resources>

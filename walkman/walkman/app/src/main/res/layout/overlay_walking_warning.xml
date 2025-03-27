@@ -1,49 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="16dp"
-    app:cardBackgroundColor="#F44336"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="4dp">
+    android:orientation="vertical"
+    android:background="@drawable/warning_overlay_background"
+    android:padding="16dp"
+    android:elevation="8dp">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tvWarningIcon"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:text="⚠️"
+        android:textSize="32sp"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+    <TextView
+        android:id="@+id/tvWarningTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="주의: 걷는 중 소셜 미디어 사용"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#FF0000"
+        android:gravity="center"
+        android:layout_marginBottom="8dp"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="걷는 중 주의!"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+    <TextView
+        android:id="@+id/tvWarningMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="걷는 중에는 스마트폰 사용에 주의하세요. 주변 상황에 집중하고 안전하게 걸으세요."
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:gravity="center"
+        android:layout_marginBottom="16dp"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="스마트폰 사용은 안전사고의 위험이 있습니다"
-                android:textColor="@android:color/white"
-                android:textSize="14sp" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btnDismiss"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="확인"
-            android:textColor="#F44336"
-            android:backgroundTint="#FFFFFF" />
-    </LinearLayout>
-</androidx.cardview.widget.CardView>
+    <Button
+        android:id="@+id/btnDismiss"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="확인"
+        android:backgroundTint="#FF0000"
+        android:textColor="#FFFFFF"/>
+</LinearLayout>
