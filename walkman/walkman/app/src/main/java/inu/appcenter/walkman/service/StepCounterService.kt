@@ -20,12 +20,15 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.StepCountRepository
 import inu.appcenter.walkman.domain.repository.UserRepository
 import inu.appcenter.walkman.presentation.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -58,6 +61,11 @@ class StepCounterService : Service(), SensorEventListener {
         // 최소 걸음 간격 (밀리초) - 너무 빠른 걸음 감지 방지
         private const val MIN_STEP_INTERVAL = 250L
     }
+
+    @Inject
+    lateinit var appUsageRepository: AppUsageRepository
+
+    private var notificationUpdateJob: Job? = null
 
     @Inject
     lateinit var stepCountRepository: StepCountRepository
@@ -210,15 +218,18 @@ class StepCounterService : Service(), SensorEventListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 NOTIFICATION_ID,
-                createNotification("걸음 수: ${_stepCount.value}"),
+                createNotification("걸음 측정 및 앱 사용 모니터링 중"),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             )
         } else {
-            startForeground(NOTIFICATION_ID, createNotification("걸음 수: ${_stepCount.value}"))
+            startForeground(NOTIFICATION_ID, createNotification("걸음 측정 및 앱 사용 모니터링 중"))
         }
 
         // 센서 리스너 등록
         registerStepSensor()
+
+        // 알림 업데이트 시작 (추가된 부분)
+        startNotificationUpdates()
 
         // 서비스가 죽었을 때 자동으로 재시작
         return START_STICKY
@@ -239,25 +250,7 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onDestroy() {
-        Log.d(TAG, "Service onDestroy")
-
-        // 마지막 걸음 수 저장
-        saveDailySteps(_stepCount.value)
-
-        // 센서 리스너 해제
-        sensorManager.unregisterListener(this)
-
-        // WakeLock 해제
-        wakeLock?.let {
-            if (it.isHeld) {
-                try {
-                    it.release()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error releasing WakeLock on destroy", e)
-                }
-            }
-        }
-
+        notificationUpdateJob?.cancel()
         super.onDestroy()
     }
 
@@ -354,12 +347,12 @@ class StepCounterService : Service(), SensorEventListener {
         return walkingMet * userWeight * timeHours
     }
 
-    private fun createNotification(text: String): Notification {
+    private fun createNotification(text: String = "걸음 측정 및 앱 사용 모니터링 중"): Notification {
         // 알림 채널 생성 (Android O 이상)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "걸음 수 측정",
+                "걸음 측정 및 앱 사용 모니터링",
                 NotificationManager.IMPORTANCE_MIN
             )
             channel.setSound(null, null)
@@ -392,17 +385,10 @@ class StepCounterService : Service(), SensorEventListener {
         )
 
         // 알림 생성
-        val distance = calculateDistance(_stepCount.value.toFloat())
-        val calories = calculateCalories(_stepCount.value.toFloat(), distance)
-
-        val notificationText = "걸음 수: ${_stepCount.value} | " +
-                "거리: ${String.format("%.2f", distance)} km | " +
-                "칼로리: ${String.format("%.1f", calories)} kcal"
-
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("GAITX 걸음 수 측정 중")
-            .setContentText(notificationText)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // 적절한 아이콘으로 변경
+            .setContentTitle("GAITX 서비스 실행 중")
+            .setContentText(text)
+            .setSmallIcon(R.drawable.ic_logo_gaitx) // 적절한 아이콘으로 변경
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_MIN) // 최소 우선순위
             .setOngoing(true) // 사용자가 스와이프로 제거할 수 없게 설정
@@ -414,7 +400,49 @@ class StepCounterService : Service(), SensorEventListener {
 
     private fun updateNotification() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(NOTIFICATION_ID, createNotification("걸음 수: ${_stepCount.value}"))
+        notificationManager.notify(NOTIFICATION_ID, createNotification("걸음 측정 및 앱 사용 모니터링 중"))
+    }
+
+    private fun startNotificationUpdates() {
+        notificationUpdateJob = serviceScope.launch {
+            while (true) {
+                try {
+                    // 소셜 미디어 앱 사용 데이터 가져오기
+                    val appUsageData = appUsageRepository.getAppUsageData().first()
+
+                    // 총 사용 시간 계산
+                    val totalUsageTime = appUsageData.sumOf { it.usageDurationMs }
+                    val formattedTime = formatDuration(totalUsageTime)
+
+                    // 알림 업데이트
+                    val notificationText = if (totalUsageTime > 0) {
+                        "걷는 중 소셜 미디어 사용 시간: $formattedTime"
+                    } else {
+                        "걸음 측정 및 앱 사용 모니터링 중"
+                    }
+
+                    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.notify(NOTIFICATION_ID, createNotification(notificationText))
+
+                    delay(30000) // 30초마다 업데이트
+                } catch (e: Exception) {
+                    Log.e(TAG, "알림 업데이트 오류", e)
+                    delay(60000) // 오류 발생 시 1분 후 재시도
+                }
+            }
+        }
+    }
+
+    private fun formatDuration(durationMs: Long): String {
+        val hours = TimeUnit.MILLISECONDS.toHours(durationMs)
+        val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs) % 60
+        val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
+
+        return when {
+            hours > 0 -> "${hours}시간 ${minutes}분"
+            minutes > 0 -> "${minutes}분 ${seconds}초"
+            else -> "${seconds}초"
+        }
     }
 
     // 현재 걸음 수를 위한 Flow 제공

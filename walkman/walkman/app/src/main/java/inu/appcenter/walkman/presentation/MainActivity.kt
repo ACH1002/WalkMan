@@ -2,6 +2,7 @@ package inu.appcenter.walkman.presentation
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.AppOpsManager
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -26,6 +27,7 @@ import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.MainViewModel
+import inu.appcenter.walkman.service.AppUsageTrackingService
 import inu.appcenter.walkman.service.StepCounterService
 import inu.appcenter.walkman.service.StepCounterService.Companion.CHANNEL_ID
 import inu.appcenter.walkman.util.LanguageManager
@@ -35,6 +37,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.os.Process
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -75,6 +78,8 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
+
+        startAppUsageTracking()
 
         // 언어 매니저 초기화
         languageManager = LanguageManager(this)
@@ -251,5 +256,51 @@ class MainActivity : ComponentActivity() {
                 Log.e("MainActivity", "Error starting service", e)
             }
         }
+    }
+
+
+    private fun startAppUsageTracking() {
+        if (hasUsageStatsPermission() &&
+            (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this))) {
+            val intent = Intent(this, AppUsageTrackingService::class.java).apply {
+                action = AppUsageTrackingService.ACTION_START
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        }
+    }
+
+    private fun hasUsageStatsPermission(): Boolean {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(),
+                packageName
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(),
+                packageName
+            )
+        }
+
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        // 앱 종료 시 서비스 중지
+        val intent = Intent(this, AppUsageTrackingService::class.java).apply {
+            action = AppUsageTrackingService.ACTION_STOP
+        }
+        startService(intent)
     }
 }

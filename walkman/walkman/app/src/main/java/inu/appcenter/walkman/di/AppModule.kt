@@ -8,11 +8,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import inu.appcenter.walkman.data.datasource.DriveServiceHelper
+import inu.appcenter.walkman.data.repository.AppUsageRepositoryImpl
 import inu.appcenter.walkman.data.repository.NotificationRepositoryImpl
 import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
 import inu.appcenter.walkman.data.repository.StepCountRepositoryImpl
 import inu.appcenter.walkman.data.repository.StorageRepositoryImpl
 import inu.appcenter.walkman.data.repository.UserRepositoryImpl
+import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.domain.repository.SensorRepository
 import inu.appcenter.walkman.domain.repository.StepCountRepository
@@ -75,5 +77,13 @@ object AppModule {
         @ApplicationContext context: Context
     ): NotificationRepository {
         return NotificationRepositoryImpl(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAppUsageRepository(
+        @ApplicationContext context: Context
+    ): AppUsageRepository {
+        return AppUsageRepositoryImpl(context)
     }
 }

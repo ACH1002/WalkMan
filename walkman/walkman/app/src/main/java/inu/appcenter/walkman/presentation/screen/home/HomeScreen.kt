@@ -1,69 +1,31 @@
 package inu.appcenter.walkman.presentation.screen.home
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.screen.home.components.MbtiAnalysisCard
-import inu.appcenter.walkman.presentation.screen.home.components.TodaySummaryCard
-import inu.appcenter.walkman.presentation.screen.home.components.WeeklyStepsCard
+import inu.appcenter.walkman.presentation.screen.home.components.SocialMediaUsageCard
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.HomeViewModel
 import inu.appcenter.walkman.util.LanguageManager
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.util.*
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,12 +36,9 @@ fun HomeScreen(
     val context = LocalContext.current
     val languageManager = remember { LanguageManager(context) }
 
-    // 언어 코드에 따라 리컴포지션 트리거
-    val languageCode by remember { mutableStateOf(languageManager.getLanguageCode()) }
-
     val uiState by viewModel.uiState.collectAsState()
+    val appUsageData by viewModel.appUsageData.collectAsState()
     val scrollState = rememberScrollState()
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -92,24 +51,20 @@ fun HomeScreen(
                     )
                 },
                 actions = {
-                    // 새로고침 버튼
+                    // 데이터 초기화 버튼
                     IconButton(onClick = {
-                        scope.launch {
-                            viewModel.loadWeeklyData()
-                        }
+                        viewModel.resetAppUsage()
                     }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.start_new_recording),
+                            contentDescription = "데이터 초기화",
                             tint = WalkManColors.Primary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = WalkManColors.Background
-                ),
-                // 커스텀 수정자를 통해 높이 줄이기
-                   // 패딩 조정
+                )
             )
         },
         containerColor = WalkManColors.Background,
@@ -122,19 +77,71 @@ fun HomeScreen(
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            TodaySummaryCard(
-                steps = uiState.todaySteps,
-                distance = uiState.todayDistance,
-                calories = uiState.todayCalories,
-                isLoading = uiState.isLoading,
-                languageManager = languageManager
-            )
+            // 오늘 날짜 및 총 사용 시간 카드
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = WalkManColors.CardBackground
+                ),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "오늘의 소셜 미디어 사용 현황",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = WalkManColors.Primary,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = SimpleDateFormat(
+                            "yyyy년 MM월 dd일 (EEE)",
+                            Locale.KOREA
+                        ).format(Calendar.getInstance().time),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WalkManColors.TextSecondary
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(color = WalkManColors.Primary)
+                    } else {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // 총 사용 시간 표시
+                            Text(
+                                text = formatDuration(uiState.totalSocialMediaUsage),
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = WalkManColors.Primary,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "걷는 중 소셜 미디어 총 사용 시간",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = WalkManColors.TextSecondary
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            WeeklyStepsCard(
-                weeklyData = uiState.weeklyStepData,
-                isLoading = uiState.isLoading
+            // 앱별 사용 시간 카드
+            SocialMediaUsageCard(
+                appUsageData = appUsageData,
+                modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -143,6 +150,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // 측정 시작 버튼
             Button(
                 onClick = onStartNewRecording,
                 colors = ButtonDefaults.buttonColors(
@@ -155,12 +163,12 @@ fun HomeScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.DirectionsWalk,
-                    contentDescription = stringResource(R.string.start_new_recording),
+                    contentDescription = "걷기 측정 시작",
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = stringResource(R.string.start_new_recording),
+                    text = "걷기 측정 시작",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -169,11 +177,15 @@ fun HomeScreen(
     }
 }
 
+// 시간 형식 변환 함수
+private fun formatDuration(durationMs: Long): String {
+    val hours = TimeUnit.MILLISECONDS.toHours(durationMs)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs) % 60
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
 
-
-
-
-
-
-
-
+    return when {
+        hours > 0 -> "${hours}시간 ${minutes}분 ${seconds}초"
+        minutes > 0 -> "${minutes}분 ${seconds}초"
+        else -> "${seconds}초"
+    }
+}
