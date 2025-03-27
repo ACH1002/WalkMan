@@ -1,6 +1,7 @@
 package inu.appcenter.walkman.service
 
 import android.app.ActivityManager
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -9,7 +10,9 @@ import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
@@ -74,8 +77,34 @@ class AppUsageTrackingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand: action=${intent?.action}")
+        Log.d(TAG, "onStartCommand called")
 
+        // 사용 통계 권한 확인
+        if (!hasUsageStatsPermission()) {
+            Log.e(TAG, "사용 통계 권한이 없습니다.")
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        // Android 14 이상에서 포그라운드 서비스 타입 명시
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC or
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
+
+        // 기존 로직 유지
         when (intent?.action) {
             ACTION_START -> startTracking()
             ACTION_STOP -> stopTracking()
@@ -83,6 +112,42 @@ class AppUsageTrackingService : Service() {
         }
 
         return START_STICKY
+    }
+
+    private fun createNotification(): Notification {
+        createNotificationChannel()
+
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val stopIntent = Intent(this, AppUsageTrackingService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this,
+            1,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("앱 사용 모니터링")
+            .setContentText("걷는 중 소셜 미디어 사용 시간을 추적하고 있습니다")
+            .setSmallIcon(R.drawable.ic_logo_gaitx)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setSilent(true)
+            .setOngoing(true)
+            .setChannelId(CHANNEL_ID)  // 채널 ID 명시적 설정
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "중지", stopPendingIntent)
+            .setExtras(Bundle().apply {
+                putString("android.substName", "walkman_step_counter")
+            })
+            .build()
     }
 
     private fun startTracking() {

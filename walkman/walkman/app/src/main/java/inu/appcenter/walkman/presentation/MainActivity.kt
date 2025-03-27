@@ -38,6 +38,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.os.Process
+import android.widget.Toast
+import inu.appcenter.walkman.service.StepCounterService.Companion.TAG
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -80,6 +82,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         startAppUsageTracking()
+
+        checkAndRequestUsageStatsPermission()
+
+        if (!hasUsageStatsPermission()) {
+            showUsageStatsPermissionDialog()
+        } else {
+            startAppUsageTracking()
+        }
 
         // 언어 매니저 초기화
         languageManager = LanguageManager(this)
@@ -280,7 +290,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun hasUsageStatsPermission(): Boolean {
-        try {
+        return try {
             val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
             val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 appOps.unsafeCheckOpNoThrow(
@@ -298,11 +308,11 @@ class MainActivity : ComponentActivity() {
             }
 
             val hasPermission = mode == AppOpsManager.MODE_ALLOWED
-            Log.d("MainActivity", "Usage stats permission: $hasPermission")
-            return hasPermission
+            Log.d(TAG, "Usage stats permission: $hasPermission")
+            hasPermission
         } catch (e: Exception) {
-            Log.e("MainActivity", "Error checking usage stats permission", e)
-            return false
+            Log.e(TAG, "Error checking usage stats permission", e)
+            false
         }
     }
 
@@ -333,5 +343,35 @@ class MainActivity : ComponentActivity() {
 
         // 권한이 있는 경우 서비스 시작
         startAppUsageTracking()
+    }
+
+    private fun showUsageStatsPermissionDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("앱 사용 추적 권한 필요")
+            .setMessage("걷는 동안 소셜 미디어 사용을 추적하기 위해 '앱 사용 통계' 권한이 필요합니다. 설정 화면에서 권한을 허용해주세요.")
+            .setPositiveButton("설정으로 이동") { _, _ ->
+                val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                startActivityForResult(intent, REQUEST_USAGE_STATS_PERMISSION)
+            }
+            .setNegativeButton("취소") { _, _ ->
+                // 권한 거부 시 기본 동작 처리
+                Toast.makeText(this, "앱 사용 추적 기능을 사용할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_USAGE_STATS_PERMISSION) {
+            if (hasUsageStatsPermission()) {
+                startAppUsageTracking()
+            } else {
+                Toast.makeText(this, "앱 사용 추적 권한이 거부되었습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    companion object {
+        private const val REQUEST_USAGE_STATS_PERMISSION = 1001
     }
 }

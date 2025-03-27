@@ -19,6 +19,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
@@ -167,7 +168,6 @@ class StepCounterService : Service(), SensorEventListener {
                 RECEIVER_NOT_EXPORTED
             )
         } else {
-            // 이전 버전에서는 기존 방식 유지
             registerReceiver(foregroundAppReceiver, intentFilter)
         }
 
@@ -435,13 +435,14 @@ class StepCounterService : Service(), SensorEventListener {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "걸음 측정 및 앱 사용 모니터링",
-                NotificationManager.IMPORTANCE_LOW // LOW로 설정하여 소리 없이 표시
-            )
-            channel.setSound(null, null)
-            channel.enableVibration(false)
-            channel.enableLights(false)
-            channel.setShowBadge(false)
-            channel.lockscreenVisibility = Notification.VISIBILITY_PUBLIC // 잠금화면에서도 보이도록 설정
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "걷는 중 소셜 미디어 사용 시간을 추적합니다"
+                setShowBadge(false)
+                enableLights(false)
+                enableVibration(false)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
 
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
@@ -470,26 +471,24 @@ class StepCounterService : Service(), SensorEventListener {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("GAITX 서비스 실행 중")
             .setContentText(text)
-            .setSmallIcon(R.drawable.ic_logo_gaitx) // 적절한 아이콘으로 변경
+            .setSmallIcon(R.drawable.ic_logo_gaitx)
             .setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_LOW) // 낮은 우선순위
-            .setOngoing(true) // 사용자가 스와이프로 제거할 수 없게 설정
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // 잠금화면에서도 표시
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOngoing(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "중지", stopPendingIntent)
+            .setExtras(Bundle().apply {
+                putString("android.substName", "walkman_step_counter")
+            })
 
         // 소셜미디어 사용 정보가 있으면 확장된 알림 스타일 적용
         if (socialMediaInfo != null) {
-            // 확장된 알림 스타일 설정
             val style = NotificationCompat.BigTextStyle()
                 .bigText("$text\n\n$socialMediaInfo")
             builder.setStyle(style)
-
-            // 중요도 높임
             builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
-
-            // 현재 사용 중인 소셜미디어 앱을 강조하기 위해 색상 설정
             builder.setColorized(true)
-            builder.setColor(Color.parseColor("#3F51B5")) // 보라색 계열
+            builder.setColor(Color.parseColor("#3F51B5"))
         }
 
         return builder.build()
