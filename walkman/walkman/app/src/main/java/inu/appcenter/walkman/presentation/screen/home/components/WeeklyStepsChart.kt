@@ -1,4 +1,4 @@
-package inu.appcenter.walkman.presentation.components
+package inu.appcenter.walkman.presentation.screen.home.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*

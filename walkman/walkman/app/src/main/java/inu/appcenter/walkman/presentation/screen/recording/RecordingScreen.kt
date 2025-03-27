@@ -34,6 +34,7 @@ import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.model.RecordingMode
+import inu.appcenter.walkman.presentation.screen.recording.components.SensorValueRow
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 import kotlinx.coroutines.delay
@@ -735,26 +736,7 @@ fun RecordingScreen(
     }
 }
 
-// 센서 데이터 고정 너비 표시를 위한 컴포저블
-@Composable
-fun SensorValueRow(label: String, value: String, unit: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = WalkManColors.TextSecondary, modifier = Modifier.width(24.dp))
 
-        // 고정된 너비로 값 표시
-        Text(
-            text = value,
-            color = WalkManColors.TextSecondary,
-            modifier = Modifier.width(48.dp),
-            textAlign = TextAlign.End
-        )
-
-        Text(" $unit", color = WalkManColors.TextSecondary)
-    }
-}
 
 // 포맷팅된 센서 데이터를 저장하는 데이터 클래스
 data class SensorDataFormatted(

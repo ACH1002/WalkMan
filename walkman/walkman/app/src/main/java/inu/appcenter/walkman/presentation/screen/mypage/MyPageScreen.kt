@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.presentation.screen.mypage.components.SettingItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
@@ -298,57 +299,7 @@ fun MyPageScreen(
     }
 }
 
-@Composable
-fun SettingItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // 아이콘
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = WalkManColors.Primary,
-            modifier = Modifier.size(24.dp)
-        )
 
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // 텍스트 컬럼
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = WalkManColors.TextPrimary,
-                fontWeight = FontWeight.Medium
-            )
-
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = WalkManColors.TextSecondary
-            )
-        }
-
-        // 화살표 아이콘
-        Icon(
-            imageVector = Icons.Default.ChevronRight,
-            contentDescription = null,
-            tint = WalkManColors.TextSecondary,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
 
 // 현재 언어가 한국어인지 확인하는 함수 (LanguageManager 대신 사용)
 @Composable

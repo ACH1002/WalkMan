@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.presentation.screen.setting.components.LanguageOption
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.util.LanguageManager
 
@@ -113,37 +114,3 @@ fun LanguageSettingsScreen(
     }
 }
 
-@Composable
-fun LanguageOption(
-    languageCode: String,
-    languageName: String,
-    isSelected: Boolean,
-    onSelect: (String) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .selectable(
-                selected = isSelected,
-                onClick = { onSelect(languageCode) }
-            )
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = isSelected,
-            onClick = { onSelect(languageCode) },
-            colors = RadioButtonDefaults.colors(
-                selectedColor = WalkManColors.Primary
-            )
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = languageName,
-            style = MaterialTheme.typography.bodyLarge,
-            color = WalkManColors.TextPrimary
-        )
-    }
-}
