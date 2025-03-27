@@ -85,10 +85,11 @@ class MainActivity : ComponentActivity() {
 
         checkAndRequestUsageStatsPermission()
 
-        if (!hasUsageStatsPermission()) {
-            showUsageStatsPermissionDialog()
-        } else {
+        if (hasUsageStatsPermission()) {
             startAppUsageTracking()
+        } else {
+            // 권한이 없으면 권한 요청
+            requestUsageStatsPermission()
         }
 
         // 언어 매니저 초기화
@@ -270,7 +271,8 @@ class MainActivity : ComponentActivity() {
 
 
     private fun startAppUsageTracking() {
-        Log.d("MainActivity", "Starting AppUsageTrackingService")
+        Log.d(TAG, "Starting AppUsageTrackingService")
+        Log.d(TAG, "Usage stats permission: ${hasUsageStatsPermission()}")
 
         try {
             val intent = Intent(this, AppUsageTrackingService::class.java).apply {
@@ -283,9 +285,10 @@ class MainActivity : ComponentActivity() {
                 startService(intent)
             }
 
-            Log.d("MainActivity", "AppUsageTrackingService 시작 요청 완료")
+            Log.d(TAG, "AppUsageTrackingService started successfully")
         } catch (e: Exception) {
-            Log.e("MainActivity", "앱 사용 추적 서비스 시작 실패", e)
+            Log.e(TAG, "앱 사용 추적 서비스 시작 실패", e)
+            Toast.makeText(this, "앱 사용 추적 서비스를 시작할 수 없습니다.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -308,11 +311,43 @@ class MainActivity : ComponentActivity() {
             }
 
             val hasPermission = mode == AppOpsManager.MODE_ALLOWED
-            Log.d(TAG, "Usage stats permission: $hasPermission")
+
+            // 더 자세한 로깅 추가
+            Log.d(TAG, "Usage stats permission check details:")
+            Log.d(TAG, "App UID: ${Process.myUid()}")
+            Log.d(TAG, "Package Name: $packageName")
+            Log.d(TAG, "Permission Mode: $mode")
+            Log.d(TAG, "Has Permission: $hasPermission")
+
             hasPermission
         } catch (e: Exception) {
             Log.e(TAG, "Error checking usage stats permission", e)
+            Log.e(TAG, "Exception details:", e)
             false
+        }
+    }
+
+    private fun checkUsageStatsPermission() {
+        val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(),
+                packageName
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(),
+                packageName
+            )
+        }
+
+        if (mode != AppOpsManager.MODE_ALLOWED) {
+            // 권한 요청 대화상자 표시
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivityForResult(intent, REQUEST_USAGE_STATS_PERMISSION)
         }
     }
 
@@ -326,23 +361,32 @@ class MainActivity : ComponentActivity() {
         startService(intent)
     }
 
+    private fun requestUsageStatsPermission() {
+        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+        startActivityForResult(intent, REQUEST_USAGE_STATS_PERMISSION)
+    }
+
     private fun checkAndRequestUsageStatsPermission() {
         if (!hasUsageStatsPermission()) {
             AlertDialog.Builder(this)
                 .setTitle("사용 통계 접근 권한 필요")
                 .setMessage("걷는 동안 소셜미디어 사용량을 측정하기 위해 '사용 통계 접근' 권한이 필요합니다. 설정 화면에서 GAITX 앱에 권한을 허용해주세요.")
                 .setPositiveButton("설정으로 이동") { _, _ ->
-                    val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-                    startActivity(intent)
+                    try {
+                        // 명시적으로 사용 통계 접근 설정 화면으로 이동
+                        val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                        startActivityForResult(intent, REQUEST_USAGE_STATS_PERMISSION)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "권한 설정 화면 오픈 중 오류 발생", e)
+                        Toast.makeText(this, "설정 화면을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    }
                 }
                 .setNegativeButton("취소", null)
                 .show()
-
-            return
+        } else {
+            // 권한이 있는 경우 서비스 시작
+            startAppUsageTracking()
         }
-
-        // 권한이 있는 경우 서비스 시작
-        startAppUsageTracking()
     }
 
     private fun showUsageStatsPermissionDialog() {
@@ -364,9 +408,11 @@ class MainActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_USAGE_STATS_PERMISSION) {
             if (hasUsageStatsPermission()) {
+                // 권한 획득 성공 시 앱 사용 추적 시작
                 startAppUsageTracking()
             } else {
-                Toast.makeText(this, "앱 사용 추적 권한이 거부되었습니다.", Toast.LENGTH_SHORT).show()
+                // 권한 거부 시 사용자에게 알림
+                Toast.makeText(this, "앱 사용 추적 권한이 필요합니다.", Toast.LENGTH_LONG).show()
             }
         }
     }

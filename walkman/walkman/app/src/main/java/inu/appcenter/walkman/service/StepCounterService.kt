@@ -67,6 +67,10 @@ class StepCounterService : Service(), SensorEventListener {
 
         // 최소 걸음 간격 (밀리초) - 너무 빠른 걸음 감지 방지
         private const val MIN_STEP_INTERVAL = 250L
+
+        const val STEP_DETECTION_ACTION = "inu.appcenter.walkman.STEP_DETECTED"
+        const val ACTION_STEP_UPDATED = "inu.appcenter.walkman.STEP_UPDATED"
+        const val EXTRA_STEP_COUNT = "step_count"
     }
 
     @Inject
@@ -354,6 +358,9 @@ class StepCounterService : Service(), SensorEventListener {
 
                     // 알림 업데이트
                     updateNotification()
+
+                    // 걸음 감지 브로드캐스트 전송 (이 부분이 추가됨)
+                    broadcastStepDetected(newStepCount)
 
                     lastStepTimestamp = currentTime
                     Log.d(TAG, "Step detected. Total steps: $newStepCount")
@@ -698,6 +705,24 @@ class StepCounterService : Service(), SensorEventListener {
             hours > 0 -> "${hours}시간 ${minutes}분 ${seconds}초"
             minutes > 0 -> "${minutes}분 ${seconds}초"
             else -> "${seconds}초"
+        }
+    }
+
+    private fun broadcastStepDetected(stepCount: Int) {
+        try {
+            // 기존 방식
+            val intent1 = Intent(STEP_DETECTION_ACTION)
+            intent1.putExtra("step_count", stepCount)
+            sendBroadcast(intent1)
+
+            // 새로운 방식 추가
+            val intent2 = Intent(ACTION_STEP_UPDATED)
+            intent2.putExtra(EXTRA_STEP_COUNT, stepCount)
+            sendBroadcast(intent2)
+
+            Log.d(TAG, "걸음 감지 브로드캐스트 전송: ${stepCount}걸음")
+        } catch (e: Exception) {
+            Log.e(TAG, "걸음 감지 브로드캐스트 전송 실패", e)
         }
     }
 

@@ -6,10 +6,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Bundle
@@ -21,6 +22,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.SensorRepository
+import inu.appcenter.walkman.domain.repository.StepCountRepository
 import inu.appcenter.walkman.presentation.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,9 +32,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.os.Process
+import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
 
 @AndroidEntryPoint
 class AppUsageTrackingService : Service() {
+
+    @Inject
+    lateinit var sensorRepository: SensorRepository
+
+    @Inject
+    lateinit var stepCountRepository: StepCountRepository
+
+    @Inject
+    lateinit var appUsageRepository: AppUsageRepository
 
     companion object {
         private const val TAG = "AppUsageTrackingService"
@@ -44,13 +56,13 @@ class AppUsageTrackingService : Service() {
         const val EXTRA_IS_SOCIAL_MEDIA = "is_social_media"
         private const val NOTIFICATION_ID = 2001
         private const val CHANNEL_ID = "app_usage_tracking_channel"
+        private const val STEP_THRESHOLD = 1 // 걸음 감지 임계값 - 이 값 이상이면 걷는 것으로 판단
+        private const val STEP_CHECK_PERIOD = 1000L // 걸음 체크 주기 (밀리초)
+        // 중요: 이 값을 StepCounterService에서도 동일하게 사용해야 함
+        const val STEP_DETECTION_ACTION = "inu.appcenter.walkman.STEP_DETECTED"
+        const val ACTION_STEP_UPDATED = "inu.appcenter.walkman.STEP_UPDATED"
+        const val EXTRA_STEP_COUNT = "step_count"
     }
-
-    @Inject
-    lateinit var appUsageRepository: AppUsageRepository
-
-    @Inject
-    lateinit var sensorRepository: SensorRepository
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var wakeLock: PowerManager.WakeLock? = null
@@ -58,6 +70,52 @@ class AppUsageTrackingService : Service() {
     private var isTracking = false
     private var lastTrackedPackage = ""
     private var lastTrackedTime = 0L
+    private var lastStepCount = 0
+    private var isWalking = false
+
+    private var lastStepDetectionTime = 0L
+    // 1. WALKING_TIMEOUT 값을 더 길게 설정
+    private val WALKING_TIMEOUT = 30 * 1000L // 10초 -> 30초로 연장
+
+    // 걸음 감지 브로드캐스트 리시버
+    private val stepDetectionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.action
+            Log.d(TAG, "브로드캐스트 리시버 액션 수신: $action")
+
+            when (action) {
+                STEP_DETECTION_ACTION, ACTION_STEP_UPDATED -> {
+                    // 이 부분을 수정
+                    val stepCount = intent.getIntExtra("step_count", 0)
+
+                    Log.d(TAG, """
+                    브로드캐스트 리시버 - 걸음 수 업데이트:
+                    - 액션: $action
+                    - 받은 걸음 수: $stepCount
+                    - 마지막 저장된 걸음 수: $lastStepCount
+                """.trimIndent())
+
+                    // 이전 걸음 수와 다른 경우에만 처리
+                    if (stepCount != lastStepCount) {
+                        lastStepCount = stepCount
+                        lastStepDetectionTime = System.currentTimeMillis()
+
+                        // 걷기 상태 업데이트
+                        val prevWalkingState = isWalking
+                        isWalking = true
+
+                        Log.d(TAG, """
+                        걷기 상태 변경:
+                        - 이전 상태: $prevWalkingState
+                        - 현재 상태: $isWalking
+                        - 걸음 수: $stepCount
+                    """.trimIndent())
+                    }
+                }
+                else -> Log.d(TAG, "알 수 없는 액션 수신: $action")
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -73,6 +131,24 @@ class AppUsageTrackingService : Service() {
             Log.d(TAG, "WakeLock setup successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set up WakeLock", e)
+        }
+
+        // 걸음 감지 브로드캐스트 리시버 등록
+        try {
+            val intentFilter = IntentFilter().apply {
+                addAction(STEP_DETECTION_ACTION)
+                addAction(ACTION_STEP_UPDATED) // 이 행을 추가
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(stepDetectionReceiver, intentFilter, RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(stepDetectionReceiver, intentFilter)
+            }
+
+            Log.d(TAG, "Step detection broadcast receiver registered")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register step detection receiver", e)
         }
     }
 
@@ -151,8 +227,12 @@ class AppUsageTrackingService : Service() {
     }
 
     private fun startTracking() {
-        if (isTracking) {
-            Log.d(TAG, "Tracking already started, ignoring request")
+        if (isTracking) return
+
+        // 권한 확인 강화
+        if (!hasUsageStatsPermission()) {
+            Log.e(TAG, "Cannot start tracking: No usage stats permission")
+            stopSelf()
             return
         }
 
@@ -176,24 +256,40 @@ class AppUsageTrackingService : Service() {
 
         isTracking = true
 
+        // 걸음 수 변화 감지를 위한 초기 값 설정
         serviceScope.launch {
             try {
-                // 사용 권한 확인
-                if (!hasUsageStatsPermission()) {
-                    Log.e(TAG, "사용 통계 권한이 없습니다.")
-                    stopSelf()
-                    return@launch
-                }
+                // 현재 걸음 수 가져오기
+                lastStepCount = (sensorRepository as? SensorRepositoryImpl)?.getCurrentStepCount() ?: 0
+                Log.d(TAG, "Initial step count: $lastStepCount")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting initial step count", e)
+            }
+        }
 
+        // 지속적으로 걸음 수 변화 감지 및 앱 사용 추적
+        serviceScope.launch {
+            try {
                 Log.d(TAG, "앱 사용 추적 시작됨")
                 lastTrackedPackage = ""
                 lastTrackedTime = 0L
 
-                // 주기적으로 현재 사용 중인 앱 확인
+                // 걸음 감지 스레드 시작
+                launch {
+                    monitorStepChanges()
+                }
+
+                // 걷기 상태 체크 스레드 시작
+                launch {
+                    while (isTracking) {
+                        checkWalkingStatus()
+                        delay(1000) // 1초마다 걷기 상태 확인
+                    }
+                }
+
+                // 앱 사용 모니터링 스레드
                 while (isTracking) {
                     try {
-                        // 걸음 측정 중인지 확인
-                        val isWalking = sensorRepository.isRecording().first()
                         Log.d(TAG, "현재 걷는 중: $isWalking")
 
                         if (isWalking) {
@@ -286,6 +382,68 @@ class AppUsageTrackingService : Service() {
         }
     }
 
+    // 걸음 수 모니터링 함수
+    private suspend fun monitorStepChanges() {
+        while (isTracking) {
+            try {
+                // 직접 SensorRepositoryImpl의 메서드 호출 대신
+                // 다른 방법으로 현재 걸음 수 가져오기
+                val sensorRepo = sensorRepository
+                val currentStepCount = if (sensorRepo is SensorRepositoryImpl) {
+                    sensorRepo.getCurrentStepCount()
+                } else {
+                    Log.e(TAG, "SensorRepository가 SensorRepositoryImpl 타입이 아닙니다.")
+                    0
+                }
+
+                val prevStepCount = lastStepCount
+                val stepDiff = currentStepCount - prevStepCount
+
+                Log.d(TAG, """
+                걸음 수 상세 로그:
+                - 이전 걸음 수: $prevStepCount
+                - 현재 걸음 수: $currentStepCount
+                - 걸음 차이: $stepDiff
+                - 현재 걷기 상태: $isWalking
+                - sensorRepository 타입: ${sensorRepository.javaClass.simpleName}
+            """.trimIndent())
+
+                if (stepDiff >= STEP_THRESHOLD) {
+                    val prevWalkingState = isWalking
+                    isWalking = true
+                    lastStepDetectionTime = System.currentTimeMillis()
+
+                    Log.d(TAG, "걷기 상태 변경: $prevWalkingState -> $isWalking")
+                }
+
+                if (stepDiff > 0) {
+                    lastStepCount = currentStepCount
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "걸음 수 모니터링 중 오류: ${e.message}", e)
+            }
+
+            delay(STEP_CHECK_PERIOD)
+        }
+    }
+
+    // 걷기 상태 체크 함수
+    private fun checkWalkingStatus() {
+        val currentTime = System.currentTimeMillis()
+        val timeSinceLastStep = currentTime - lastStepDetectionTime
+
+        // 상태 변경 전 로그 추가
+        if (timeSinceLastStep > WALKING_TIMEOUT * 0.8 && isWalking) {
+            Log.d(TAG, "걷기 중단 임박: ${timeSinceLastStep}ms 동안 걸음 없음 (임계값: ${WALKING_TIMEOUT}ms)")
+        }
+
+        if (timeSinceLastStep > WALKING_TIMEOUT && isWalking) {
+            val prevState = isWalking
+            isWalking = false
+            Log.d(TAG, "걷기 중단 감지: ${timeSinceLastStep}ms 동안 걸음 없음, 상태 변경: $prevState -> $isWalking")
+        }
+    }
+
     private fun stopTracking() {
         if (!isTracking) return
 
@@ -339,16 +497,20 @@ class AppUsageTrackingService : Service() {
                 val usm = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
                 val time = System.currentTimeMillis()
 
-                // 시간 범위를 넓혀 더 많은 앱 사용 데이터를 가져옴
+                // 시간 범위를 더 넓게 설정
                 val appList = usm.queryUsageStats(
                     UsageStatsManager.INTERVAL_DAILY,
-                    time - 1000 * 60, // 1분 전부터 (기존 10초에서 수정)
+                    time - 1000 * 60 * 5, // 5분 전부터
                     time
                 )
 
+                // 로깅 강화
+                Log.d(TAG, "UsageStatsManager 쿼리 결과:")
+                Log.d(TAG, "현재 시간: $time")
+                Log.d(TAG, "쿼리 시작 시간: ${time - 1000 * 60 * 5}")
+
                 if (appList != null && appList.isNotEmpty()) {
-                    // 사용 데이터 로깅
-                    Log.d(TAG, "Found ${appList.size} usage stats entries")
+                    Log.d(TAG, "발견된 앱 사용 통계 엔트리 수: ${appList.size}")
 
                     // 최근 사용된 앱을 기준으로 정렬
                     val sortedApps = appList.sortedByDescending { it.lastTimeUsed }
@@ -356,11 +518,11 @@ class AppUsageTrackingService : Service() {
                     // 첫 번째 앱이 현재 사용 중인 앱일 가능성이 높음
                     val topApp = sortedApps.firstOrNull()
                     if (topApp != null) {
-                        Log.d(TAG, "Top app: ${topApp.packageName}, last used: ${topApp.lastTimeUsed}")
+                        Log.d(TAG, "최상위 앱 선택: ${topApp.packageName}, 마지막 사용 시간: ${topApp.lastTimeUsed}")
                         return topApp.packageName
                     }
                 } else {
-                    Log.w(TAG, "No usage stats found")
+                    Log.w(TAG, "앱 사용 통계를 찾을 수 없음")
                 }
             }
 
@@ -371,13 +533,14 @@ class AppUsageTrackingService : Service() {
             }?.processName
 
             if (foregroundApp != null) {
-                Log.d(TAG, "Foreground app from ActivityManager: $foregroundApp")
+                Log.d(TAG, "ActivityManager에서 포그라운드 앱 발견: $foregroundApp")
                 return foregroundApp
             }
 
             ""
         } catch (e: Exception) {
-            Log.e(TAG, "포그라운드 앱 확인 실패: ${e.message}")
+            Log.e(TAG, "포그라운드 앱 확인 중 예외 발생", e)
+            e.printStackTrace()
             ""
         }
     }
@@ -561,23 +724,34 @@ class AppUsageTrackingService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d(TAG, "Service onDestroy")
+        Log.d(
+            TAG,
+            "Service onDestroy"
+        )
 
         try {
+            // 브로드캐스트 리시버 해제
+            try {
+                unregisterReceiver(stepDetectionReceiver)
+                Log.d(
+                    TAG,
+                    "Step detection receiver unregistered"
+                )
+            } catch (e: Exception) {
+                Log.e(
+                    TAG,
+                    "Error unregistering step detection receiver",
+                    e
+                )
+            }
+
             stopTracking()
         } catch (e: Exception) {
-            Log.e(TAG, "Error in stopTracking during onDestroy", e)
-        }
-
-        wakeLock?.let {
-            if (it.isHeld) {
-                try {
-                    it.release()
-                    Log.d(TAG, "WakeLock released in onDestroy")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error releasing WakeLock in onDestroy", e)
-                }
-            }
+            Log.e(
+                TAG,
+                "Error in stopTracking during onDestroy",
+                e
+            )
         }
     }
 }

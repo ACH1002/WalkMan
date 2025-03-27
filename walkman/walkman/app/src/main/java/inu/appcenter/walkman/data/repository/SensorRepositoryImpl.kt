@@ -2,6 +2,7 @@ package inu.appcenter.walkman.data.repository
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.hardware.Sensor
@@ -81,6 +82,12 @@ class SensorRepositoryImpl @Inject constructor(
     // 걸음 감지 관련 변수
     private var lastStepTimestamp = 0L
     private val MIN_STEP_INTERVAL = 250L // 최소 걸음 간격 (밀리초)
+
+    companion object {
+        const val STEP_DETECTION_ACTION = "inu.appcenter.walkman.STEP_DETECTED"
+        const val ACTION_STEP_UPDATED = "inu.appcenter.walkman.STEP_UPDATED"
+        const val EXTRA_STEP_COUNT = "step_count"
+    }
 
     init {
         // 필드 초기화 후에 함수 호출
@@ -470,6 +477,9 @@ class SensorRepositoryImpl @Inject constructor(
                     // 저장
                     updateAndSaveDailySteps(newTotalSteps)
 
+                    // 걸음 감지 브로드캐스트 전송 (이 부분 추가)
+                    broadcastStepDetected(newTotalSteps)
+
                     lastStepTimestamp = currentTime
                     Log.d(TAG, "Step detected. Session steps: $sessionSteps, Total steps: $newTotalSteps")
                 }
@@ -480,6 +490,24 @@ class SensorRepositoryImpl @Inject constructor(
                 Log.d(TAG, "Step counter event received: ${event.values[0]}")
                 // 여기서 필요한 처리 추가 (필요한 경우)
             }
+        }
+    }
+
+    private fun broadcastStepDetected(stepCount: Int) {
+        try {
+            // 서비스와 연동하려면 상수값이 일치해야 함
+            val intent1 = Intent("inu.appcenter.walkman.STEP_DETECTED")
+            intent1.putExtra("step_count", stepCount)
+            context.sendBroadcast(intent1)
+
+            // 새 형식 (AppUsageTrackingService의 상수와 일치하게)
+            val intent2 = Intent("inu.appcenter.walkman.STEP_UPDATED")
+            intent2.putExtra("step_count", stepCount)
+            context.sendBroadcast(intent2)
+
+            Log.d(TAG, "걸음 감지 브로드캐스트 전송: ${stepCount}걸음")
+        } catch (e: Exception) {
+            Log.e(TAG, "걸음 감지 브로드캐스트 전송 실패", e)
         }
     }
 
