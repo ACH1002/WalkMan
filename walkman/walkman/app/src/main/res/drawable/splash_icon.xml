@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="480"
+            android:viewportHeight="480">
+
+            <!-- 뷰포트를 더 크게 설정하고 내부 요소의 위치를 중앙으로 이동 -->
+            <!-- 각 요소의 좌표값에 40씩 추가하여 중앙에 배치 -->
+
+            <!-- 중앙 원형 디자인 (걸음 센서 심볼) -->
+            <path
+                android:fillColor="#E3D0FF"
+                android:pathData="M240,170m-70,0a70,70 0,1 1,140 0a70,70 0,1 1,-140 0" />
+            <path
+                android:fillColor="#B69DF8"
+                android:pathData="M240,170m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
+            <path
+                android:fillColor="#6200EE"
+                android:pathData="M240,170m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0" />
+
+            <!-- 걸음걸이 시각화 - 메인 곡선 -->
+            <path
+                android:strokeColor="#6200EE"
+                android:strokeWidth="15"
+                android:strokeLineCap="round"
+                android:pathData="M100,250 Q160,200 220,240 Q280,280 340,240 Q380,220 420,250" />
+
+            <!-- 발자국 표시 -->
+            <path
+                android:fillColor="#8867D0"
+                android:pathData="M150,225m-15,-22a15,22 75,1 1,30 0a15,22 75,1 1,-30 0" />
+            <path
+                android:fillColor="#6200EE"
+                android:pathData="M250,260m-15,-22a15,22 105,1 1,30 0a15,22 105,1 1,-30 0" />
+            <path
+                android:fillColor="#8867D0"
+                android:pathData="M360,230m-15,-22a15,22 75,1 1,30 0a15,22 75,1 1,-30 0" />
+
+            <!-- 하단 파형 -->
+            <path
+                android:strokeColor="#8867D0"
+                android:strokeWidth="6"
+                android:strokeLineCap="round"
+                android:pathData="M160,330 Q200,320 240,330 Q280,340 320,330" />
+        </vector>
+    </item>
+</layer-list>

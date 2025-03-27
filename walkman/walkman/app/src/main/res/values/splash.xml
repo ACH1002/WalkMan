@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 스플래시 화면 테마 -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <!-- 스플래시 화면 배경 색상 -->
+        <item name="windowSplashScreenBackground">@color/white</item>
+
+        <!-- 스플래시 화면 아이콘 -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+
+        <!-- 스플래시 아이콘 크기 조정 -->
+        <item name="windowSplashScreenIconBackgroundColor">@color/white</item>
+
+        <!-- 스플래시 화면 아이콘 애니메이션 지속 시간 -->
+        <item name="windowSplashScreenAnimationDuration">300</item>
+
+        <!-- 스플래시 화면 종료 후 전환할 테마 -->
+        <item name="postSplashScreenTheme">@style/Theme.WalkMan</item>
+    </style>
+</resources>

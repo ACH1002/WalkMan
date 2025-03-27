@@ -109,4 +109,6 @@ dependencies {
 
     //영상
     implementation ("com.google.android.exoplayer:exoplayer:2.19.1")
+
+
 }
