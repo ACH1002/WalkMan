@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -21,18 +22,30 @@ import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import dagger.hilt.android.AndroidEntryPoint
+import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.MainViewModel
 import inu.appcenter.walkman.service.StepCounterService
 import inu.appcenter.walkman.service.StepCounterService.Companion.CHANNEL_ID
 import inu.appcenter.walkman.util.LanguageManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
     private lateinit var languageManager: LanguageManager
+
+    @Inject
+    lateinit var notificationRepository: NotificationRepository
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     // 권한 요청 런처
     private val permissionsLauncher = registerForActivityResult(
@@ -221,12 +234,22 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startStepCounterService() {
-        // 걸음 수 카운터 서비스 시작
-        val serviceIntent = Intent(this, StepCounterService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
+        coroutineScope.launch {
+            try {
+                val isNotificationEnabled = notificationRepository.isNotificationEnabled().first()
+
+                if (isNotificationEnabled && arePermissionsGranted()) {
+                    // 알림 설정이 활성화된 경우에만 서비스 시작
+                    val serviceIntent = Intent(this@MainActivity, StepCounterService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(serviceIntent)
+                    } else {
+                        startService(serviceIntent)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error starting service", e)
+            }
         }
     }
 }

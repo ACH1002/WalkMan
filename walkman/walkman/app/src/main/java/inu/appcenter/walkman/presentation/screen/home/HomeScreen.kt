@@ -109,8 +109,7 @@ fun HomeScreen(
                     containerColor = WalkManColors.Background
                 ),
                 // 커스텀 수정자를 통해 높이 줄이기
-                modifier = Modifier.height(56.dp), // 기본값은 일반적으로 56dp
-                // 패딩 조정
+                   // 패딩 조정
             )
         },
         containerColor = WalkManColors.Background,

@@ -1,4 +1,4 @@
-package inu.appcenter.walkman.presentation.screen.setting.components
+package inu.appcenter.walkman.presentation.screen.mypage.settings.language
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer

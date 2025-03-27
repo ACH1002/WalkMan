@@ -22,8 +22,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,8 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -50,7 +46,8 @@ import inu.appcenter.walkman.presentation.screen.mypage.MyPageScreen
 import inu.appcenter.walkman.presentation.screen.recording.RecordingScreen
 import inu.appcenter.walkman.presentation.screen.recordingmodes.RecordingModesScreen
 import inu.appcenter.walkman.presentation.screen.result.RecordingResultsScreen
-import inu.appcenter.walkman.presentation.screen.settings.LanguageSettingsScreen
+import inu.appcenter.walkman.presentation.screen.mypage.settings.language.LanguageSettingsScreen
+import inu.appcenter.walkman.presentation.screen.mypage.settings.notification.NotificationSettingsScreen
 import inu.appcenter.walkman.presentation.screen.userinfo.UserInfoScreen
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
@@ -312,6 +309,14 @@ fun MainNavigationScreen(
                     viewModel = userInfoViewModel,
                     isEdit = true,
                     onNavigateNext = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            composable("notification_settings") {
+                NotificationSettingsScreen(
+                    onNavigateBack = {
                         navController.popBackStack()
                     }
                 )

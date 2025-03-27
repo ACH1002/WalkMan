@@ -133,4 +133,22 @@
 
     <!-- 한국어 리소스 (values/strings.xml) -->
     <string name="date_format">yyyy년 MM월 dd일</string>
+
+
+    <!-- 알림 설정 화면 관련 -->
+    <string name="step_tracking_notifications">걸음 수 추적 알림</string>
+    <string name="step_tracking_description">걸음 수 추적 기능을 활성화하면 앱이 백그라운드에서도 계속 걸음 수를 측정하고 알림을 표시합니다.</string>
+    <string name="step_tracking_enabled">걸음 수 추적 활성화됨</string>
+    <string name="step_tracking_disabled">걸음 수 추적 비활성화됨</string>
+
+    <!-- 배터리 최적화 안내 -->
+    <string name="battery_optimization_title">더 정확한 걸음 수 측정을 위한 설정</string>
+    <string name="battery_optimization_description">일부 기기에서는 배터리 최적화로 인해 백그라운드에서 걸음 수 측정이 중단될 수 있습니다. 더 정확한 측정을 위해 배터리 최적화 예외 설정을 권장합니다.</string>
+    <string name="battery_optimization_button">배터리 최적화 설정</string>
+
+    <!-- 권한 관련 -->
+    <string name="notification_permission_title">알림 권한 필요</string>
+    <string name="notification_permission_message">걸음 수 추적 기능을 위해서는 알림 권한이 필요합니다. 설정에서 권한을 허용해주세요.</string>
+    <string name="go_to_settings">설정으로 이동</string>
+    <string name="cancel">취소</string>
 </resources>

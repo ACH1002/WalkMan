@@ -133,4 +133,21 @@
 
     <!-- 영어 리소스 (values-en/strings.xml) -->
     <string name="date_format">MMMM dd, yyyy</string>
+
+    <!-- Notification settings screen related -->
+    <string name="step_tracking_notifications">Step Tracking Notifications</string>
+    <string name="step_tracking_description">When step tracking is enabled, the app will continue to count steps and display notifications even in the background.</string>
+    <string name="step_tracking_enabled">Step tracking enabled</string>
+    <string name="step_tracking_disabled">Step tracking disabled</string>
+
+    <!-- Battery optimization guidance -->
+    <string name="battery_optimization_title">Settings for More Accurate Step Counting</string>
+    <string name="battery_optimization_description">On some devices, battery optimization may interrupt step counting in the background. We recommend disabling battery optimization for more accurate measurements.</string>
+    <string name="battery_optimization_button">Battery Optimization Settings</string>
+
+    <!-- Permission related -->
+    <string name="notification_permission_title">Notification Permission Required</string>
+    <string name="notification_permission_message">Notification permission is required for step tracking functionality. Please allow this permission in settings.</string>
+    <string name="go_to_settings">Go to Settings</string>
+    <string name="cancel">Cancel</string>
 </resources>

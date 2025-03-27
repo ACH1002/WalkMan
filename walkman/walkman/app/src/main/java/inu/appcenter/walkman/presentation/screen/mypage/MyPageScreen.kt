@@ -233,7 +233,7 @@ fun MyPageScreen(
                         icon = Icons.Default.Notifications,
                         title = stringResource(id = R.string.settings_notifications),
                         subtitle = stringResource(id = R.string.settings_notifications_desc),
-                        onClick = { /* 알림 설정 화면으로 이동 */ }
+                        onClick = { navController.navigate("notification_settings") }
                     )
 
                     Divider(
