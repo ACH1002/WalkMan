@@ -76,6 +76,8 @@ class AppUsageTrackingService : Service() {
     private var lastStepDetectionTime = 0L
     // 1. WALKING_TIMEOUT 값을 더 길게 설정
     private val WALKING_TIMEOUT = 30 * 1000L // 10초 -> 30초로 연장
+    private var lastWarningTime = 0L
+    private val WARNING_INTERVAL = 60 * 1000L
 
     // 걸음 감지 브로드캐스트 리시버
     private val stepDetectionReceiver = object : BroadcastReceiver() {
@@ -85,32 +87,28 @@ class AppUsageTrackingService : Service() {
 
             when (action) {
                 STEP_DETECTION_ACTION, ACTION_STEP_UPDATED -> {
-                    // 이 부분을 수정
-                    val stepCount = intent.getIntExtra("step_count", 0)
+                    // Try multiple keys for step count to ensure compatibility
+                    val stepCount = intent.getIntExtra("step_count",
+                        intent.getIntExtra(EXTRA_STEP_COUNT, 0))
 
                     Log.d(TAG, """
-                    브로드캐스트 리시버 - 걸음 수 업데이트:
-                    - 액션: $action
-                    - 받은 걸음 수: $stepCount
-                    - 마지막 저장된 걸음 수: $lastStepCount
+                브로드캐스트 리시버 - 걸음 수 업데이트:
+                - 액션: $action
+                - 받은 걸음 수: $stepCount
+                - 마지막 저장된 걸음 수: $lastStepCount
                 """.trimIndent())
 
-                    // 이전 걸음 수와 다른 경우에만 처리
-                    if (stepCount != lastStepCount) {
-                        lastStepCount = stepCount
-                        lastStepDetectionTime = System.currentTimeMillis()
+                    // IMPORTANT: Always update the walking state when steps are detected
+                    lastStepCount = stepCount
+                    lastStepDetectionTime = System.currentTimeMillis()
+                    isWalking = true
 
-                        // 걷기 상태 업데이트
-                        val prevWalkingState = isWalking
-                        isWalking = true
-
-                        Log.d(TAG, """
-                        걷기 상태 변경:
-                        - 이전 상태: $prevWalkingState
-                        - 현재 상태: $isWalking
-                        - 걸음 수: $stepCount
-                    """.trimIndent())
-                    }
+                    Log.d(TAG, "걷기 상태 변경됨: true (걸음 수: $stepCount)")
+                }
+                "DIRECT_WALKING_STATE_CHANGE" -> {
+                    isWalking = intent.getBooleanExtra("is_walking", false)
+                    lastStepDetectionTime = System.currentTimeMillis()
+                    Log.d(TAG, "직접 걷기 상태 변경 수신됨: $isWalking")
                 }
                 else -> Log.d(TAG, "알 수 없는 액션 수신: $action")
             }
@@ -120,7 +118,6 @@ class AppUsageTrackingService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "AppUsageTrackingService onCreate")
-
         // WakeLock 설정
         try {
             val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -139,6 +136,8 @@ class AppUsageTrackingService : Service() {
                 addAction(STEP_DETECTION_ACTION)
                 addAction(ACTION_STEP_UPDATED) // 이 행을 추가
             }
+            intentFilter.addAction("DIRECT_WALKING_STATE_CHANGE")
+
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 registerReceiver(stepDetectionReceiver, intentFilter, RECEIVER_NOT_EXPORTED)
@@ -326,10 +325,21 @@ class AppUsageTrackingService : Service() {
                                     // 소셜 미디어 앱 사용 중이면 경고 표시
                                     if (isSocialMediaApp(currentPackage)) {
                                         Log.d(TAG, "소셜미디어 앱 사용 중 경고 표시")
-                                        showWalkingWarning()
+                                        showWalkingWarning(currentPackage)
+                                        lastWarningTime = currentTime
                                     }
                                 } else {
-                                    // 같은 앱을 계속 사용 중인 경우 (주기적으로 사용 시간 저장)
+                                    // 같은 앱을 계속 사용 중인 경우
+
+                                    // 소셜 미디어 앱을 지속적으로 사용 중이면서 마지막 경고로부터 일정 시간이 지났으면 다시 경고
+                                    if (isSocialMediaApp(currentPackage) &&
+                                        (currentTime - lastWarningTime > WARNING_INTERVAL)) {
+                                        Log.d(TAG, "소셜미디어 앱 지속 사용 중 - 주기적 경고 표시")
+                                        showWalkingWarning(currentPackage)
+                                        lastWarningTime = currentTime
+                                    }
+
+                                    // 주기적으로 사용 시간 저장 (기존 코드)
                                     if (currentTime - lastTrackedTime > 30000) { // 30초마다 저장
                                         val duration = currentTime - lastTrackedTime
 
@@ -366,6 +376,7 @@ class AppUsageTrackingService : Service() {
                             // 추적 초기화
                             lastTrackedPackage = ""
                             lastTrackedTime = 0L
+                            lastWarningTime = 0L
 
                             // 추적 중단 브로드캐스트 전송
                             broadcastForegroundAppChange("")
@@ -413,7 +424,14 @@ class AppUsageTrackingService : Service() {
                     isWalking = true
                     lastStepDetectionTime = System.currentTimeMillis()
 
-                    Log.d(TAG, "걷기 상태 변경: $prevWalkingState -> $isWalking")
+                    // 상태 변경 시 명시적으로 로그 추가
+                    Log.d(TAG, "걸음 수 변화로 걷기 상태 강제 변경: false -> true")
+
+                    // 현재 소셜미디어 앱 사용 중이면 즉시 경고 표시
+                    val currentPackage = getForegroundPackageName()
+                    if (isSocialMediaApp(currentPackage)) {
+                        showWalkingWarning(currentPackage)
+                    }
                 }
 
                 if (stepDiff > 0) {
@@ -631,18 +649,47 @@ class AppUsageTrackingService : Service() {
     }
 
     // 걷기 중 소셜 미디어 사용 경고 표시
-    private fun showWalkingWarning() {
-        // 걷기 중 소셜 미디어 사용 경고 표시
+    private fun showWalkingWarning(packageName: String = "") {
+        // Only show warning if actually walking
+        if (!isWalking) {
+            Log.d(TAG, "걷기 중이 아니므로 경고 표시 안함")
+            return
+        }
+
         serviceScope.launch {
             try {
+                val appName = if (packageName.isNotEmpty()) getAppName(packageName) else ""
+
                 val intent = Intent(this@AppUsageTrackingService, WalkingWarningService::class.java).apply {
                     action = WalkingWarningService.ACTION_SHOW_WARNING
+                    // 앱 이름 전달
+                    putExtra(WalkingWarningService.EXTRA_APP_NAME, appName)
                 }
                 startService(intent)
-                Log.d(TAG, "Walking warning service started")
+                Log.d(TAG, "Walking warning service started for app: $appName")
+
+                // Reset warning time to prevent too frequent warnings
+                lastWarningTime = System.currentTimeMillis()
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start walking warning service", e)
             }
+        }
+    }
+
+    private fun broadcastStepDetected(stepCount: Int) {
+        try {
+            // Make sure to use consistent extra name - "step_count" in both intents
+            val intent1 = Intent(STEP_DETECTION_ACTION)
+            intent1.putExtra("step_count", stepCount)
+            sendBroadcast(intent1)
+
+            val intent2 = Intent(ACTION_STEP_UPDATED)
+            intent2.putExtra("step_count", stepCount) // Use same extra name
+            sendBroadcast(intent2)
+
+            Log.d(TAG, "걸음 감지 브로드캐스트 전송: ${stepCount}걸음")
+        } catch (e: Exception) {
+            Log.e(TAG, "걸음 감지 브로드캐스트 전송 실패", e)
         }
     }
 

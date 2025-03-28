@@ -6,6 +6,8 @@ import android.app.AppOpsManager
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.PixelFormat
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -38,7 +40,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.os.Process
+import android.view.Gravity
+import android.widget.Button
 import android.widget.Toast
+import inu.appcenter.walkman.BuildConfig
 import inu.appcenter.walkman.service.StepCounterService.Companion.TAG
 
 @AndroidEntryPoint
@@ -113,6 +118,8 @@ class MainActivity : ComponentActivity() {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             )
         }
+
+        addDebugFloatingButton()
 
         enableEdgeToEdge()
 
@@ -417,7 +424,81 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun startWalkingSimulation(isWalking: Boolean) {
+        // Create intent to simulate walking
+        val intent = Intent(this, StepCounterService::class.java).apply {
+            action = if (isWalking) "SIMULATE_WALKING_START" else "SIMULATE_WALKING_STOP"
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+
+        // Also broadcast a step detection event for immediate feedback
+        if (isWalking) {
+            val stepIntent = Intent(StepCounterService.STEP_DETECTION_ACTION).apply {
+                putExtra("step_count", 1)
+            }
+            sendBroadcast(stepIntent)
+        }
+    }
+
+    private fun testWalkingDetection() {
+        // Show dialog to select test walking state
+        AlertDialog.Builder(this)
+            .setTitle("테스트: 걷기 시뮬레이션")
+            .setMessage("걷기 상태를 시뮬레이션하여 앱 기능을 테스트합니다.")
+            .setPositiveButton("걷기 시작") { _, _ ->
+                // Start the walking simulation
+                startWalkingSimulation(true)
+                Toast.makeText(this, "걷기 시뮬레이션 시작됨", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("걷기 중지") { _, _ ->
+                // Stop the walking simulation
+                startWalkingSimulation(false)
+                Toast.makeText(this, "걷기 시뮬레이션 중지됨", Toast.LENGTH_SHORT).show()
+            }
+            .setNeutralButton("취소", null)
+            .show()
+    }
+
     companion object {
         private const val REQUEST_USAGE_STATS_PERMISSION = 1001
+    }
+
+    private fun addDebugFloatingButton() {
+        // Only add debug button in debug builds
+        if (BuildConfig.DEBUG) {
+            val windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+
+            val debugButton = Button(this).apply {
+                text = "DEBUG"
+                setBackgroundColor(Color.parseColor("#80FF0000"))
+                alpha = 0.7f
+                setOnClickListener {
+                    testWalkingDetection()
+                }
+            }
+
+            val params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.BOTTOM or Gravity.END
+                x = 10
+                y = 100
+            }
+
+            try {
+                windowManager.addView(debugButton, params)
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Could not add debug button", e)
+            }
+        }
     }
 }

@@ -39,7 +39,6 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <permission android:name="inu.appcenter.walkman.STEP_PERMISSION"
         android:protectionLevel="signature" />
     <uses-permission android:name="inu.appcenter.walkman.STEP_PERMISSION" />

@@ -26,6 +26,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.SensorRepository
 import inu.appcenter.walkman.domain.repository.StepCountRepository
@@ -71,6 +72,9 @@ class StepCounterService : Service(), SensorEventListener {
         const val STEP_DETECTION_ACTION = "inu.appcenter.walkman.STEP_DETECTED"
         const val ACTION_STEP_UPDATED = "inu.appcenter.walkman.STEP_UPDATED"
         const val EXTRA_STEP_COUNT = "step_count"
+
+        const val ACTION_SIMULATE_WALKING_START = "SIMULATE_WALKING_START"
+        const val ACTION_SIMULATE_WALKING_STOP = "SIMULATE_WALKING_STOP"
     }
 
     @Inject
@@ -279,6 +283,18 @@ class StepCounterService : Service(), SensorEventListener {
             return START_NOT_STICKY
         }
 
+        //시뮬레이션
+        if (intent?.action == ACTION_SIMULATE_WALKING_START) {
+            Log.d(TAG, "Received simulation start request")
+            // Force walking state and generate steps
+            simulateWalking(true)
+            return START_STICKY
+        } else if (intent?.action == ACTION_SIMULATE_WALKING_STOP) {
+            Log.d(TAG, "Received simulation stop request")
+            simulateWalking(false)
+            return START_STICKY
+        }
+
         // 포그라운드 서비스로 실행 (Android 14 이상용 타입 지정)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -298,6 +314,45 @@ class StepCounterService : Service(), SensorEventListener {
 
         // 서비스가 죽었을 때 자동으로 재시작
         return START_STICKY
+    }
+
+    private fun notifyWalkingStateChanged(isWalking: Boolean) {
+        val intent = Intent("DIRECT_WALKING_STATE_CHANGE")
+        intent.putExtra("is_walking", isWalking)
+        intent.setPackage(packageName) // 같은 앱 내에서만 받도록 설정
+        sendBroadcast(intent)
+        Log.d(TAG, "직접 걷기 상태 변경 브로드캐스트 전송: $isWalking")
+    }
+
+    // StepCounterService.kt의 simulateWalking 메소드 수정
+    private fun simulateWalking(isWalking: Boolean) {
+        // SensorRepositoryImpl의 simulateWalking 메소드 직접 호출
+        if (sensorRepository is SensorRepositoryImpl) {
+            (sensorRepository as SensorRepositoryImpl).simulateWalking(isWalking)
+            Log.d(TAG, "SensorRepositoryImpl.simulateWalking($isWalking) 호출됨")
+        }
+
+        // 기존 시뮬레이션 코드는 필요하다면 유지
+        if (isWalking) {
+            // Start a coroutine to simulate steps
+            serviceScope.launch {
+                // Trigger step events every 1 second for the simulation
+                while (true) {
+                    val newStepCount = _stepCount.value + 1
+                    _stepCount.value = newStepCount
+
+                    broadcastStepDetected(newStepCount)
+
+                    lastStepTimestamp = System.currentTimeMillis()
+                    Log.d(TAG, "시뮬레이션: 걸음 감지됨. 총 걸음 수: $newStepCount")
+
+                    // Save the step data
+                    saveDailySteps(newStepCount)
+
+                    delay(1000) // Wait 1 second between steps
+                }
+            }
+        }
     }
 
     private fun registerStepSensor() {

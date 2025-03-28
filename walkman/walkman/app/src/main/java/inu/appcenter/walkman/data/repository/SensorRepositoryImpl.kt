@@ -122,6 +122,27 @@ class SensorRepositoryImpl @Inject constructor(
         }
     }
 
+    // Add this helper method in SensorRepositoryImpl.kt to simulate a walking state for testing
+    fun simulateWalking(isWalking: Boolean) {
+        // This is a testing method only - allows you to override the walking state
+        if (isWalking) {
+            _isRecording.value = true
+            broadcastStepDetected(_totalDailySteps.value + 1)
+            lastStepTimestamp = System.currentTimeMillis()
+            _totalDailySteps.value += 1
+            updateAndSaveDailySteps(_totalDailySteps.value)
+        } else {
+            _isRecording.value = false
+        }
+    }
+
+    // SensorRepositoryImpl.kt에 추가할 코드
+// _isRecording 상태를 강제로 설정하는 메서드 추가
+    fun forceSetWalkingState(isWalking: Boolean) {
+        _isRecording.value = isWalking
+        Log.d("SensorRepositoryImpl", "걷기 상태 강제 설정: $isWalking")
+    }
+
     // 걸음 수 초기화
     // 변경된 resetDailySteps 메서드
     private fun resetDailySteps(currentDate: Long) {

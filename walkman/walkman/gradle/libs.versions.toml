@@ -24,6 +24,7 @@ hiltNavigationCompose = "1.2.0"
 coilCompose = "2.5.0"
 coreSplashscreen = "1.0.1"
 cardview = "1.0.0"
+constraintlayout = "2.2.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -57,6 +58,7 @@ hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", ve
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 androidx-ui-util = { module = "androidx.compose.ui:ui-util" }
 androidx-cardview = { group = "androidx.cardview", name = "cardview", version.ref = "cardview" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

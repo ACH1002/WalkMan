@@ -152,4 +152,6 @@
     <string name="cancel">Cancel</string>
 
     <string name="walking_warning_message">Be cautious while using your smartphone while walking. Stay focused on your surroundings and minimize distractions during walking.</string>
+    <string name="walking_warning_message_with_app">Warning: Using %s while walking is dangerous! Please stop and use it in a safe place.</string>
+    <string name="btn_dismiss">OK</string>
 </resources>
