@@ -51,13 +51,9 @@ class WalkingWarningService : Service() {
     }
 
     private fun showWarningOverlay(appName: String = "") {
-        // 기존 작업 취소
+        // 기존 작업 취소 및 기존 뷰 제거
         autoRemoveJob?.cancel()
-
-        // 이미 표시 중이면 제거 후 다시 표시
-        if (warningView != null) {
-            removeWarningOverlay()
-        }
+        removeExistingOverlay()
 
         try {
             windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -66,6 +62,7 @@ class WalkingWarningService : Service() {
                 type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 } else {
+                    @Suppress("DEPRECATION")
                     WindowManager.LayoutParams.TYPE_SYSTEM_ALERT
                 }
                 flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -80,7 +77,7 @@ class WalkingWarningService : Service() {
             warningView = LayoutInflater.from(this).inflate(R.layout.overlay_walking_warning, null).apply {
                 // 닫기 버튼 이벤트 설정
                 findViewById<Button>(R.id.btnDismiss).setOnClickListener {
-                    removeWarningOverlay()
+                    removeOverlay()
                 }
 
                 // 앱 아이콘 설정
@@ -111,23 +108,61 @@ class WalkingWarningService : Service() {
             // 윈도우에 뷰 추가
             windowManager?.addView(warningView, layoutParams)
 
-            // 애니메이션 효과 적용
-            val slideIn = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.slide_in_top)
-            warningView?.startAnimation(slideIn)
-
-            // 일정 시간 후 자동 제거
+            // 자동 제거 작업 시작
             autoRemoveJob = serviceScope.launch {
                 delay(WARNING_DURATION)
                 withContext(Dispatchers.Main) {
-                    if (warningView != null) {
-                        removeWarningOverlay()
-                    }
+                    removeOverlay()
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "경고창 표시 중 오류 발생", e)
-            removeWarningOverlay()
+            removeOverlay()
         }
+    }
+
+
+
+    private fun removeExistingOverlay() {
+        try {
+            if (warningView != null) {
+                windowManager?.removeView(warningView)
+                warningView = null
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "기존 오버레이 제거 중 오류", e)
+        }
+    }
+
+    private fun removeOverlay() {
+        try {
+            // 자동 제거 작업 취소
+            autoRemoveJob?.cancel()
+
+            // 뷰가 없으면 서비스 중지
+            if (warningView == null) {
+                stopSelf()
+                return
+            }
+
+            // 윈도우 매니저에서 뷰 제거
+            windowManager?.removeView(warningView)
+            warningView = null
+
+            // 서비스 중지
+            stopSelf()
+        } catch (e: Exception) {
+            Log.e(TAG, "오버레이 제거 중 오류", e)
+            warningView = null
+            stopSelf()
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        super.onDestroy()
+        removeOverlay()
     }
 
     // 앱 아이콘 리소스 ID 가져오기
@@ -152,46 +187,5 @@ class WalkingWarningService : Service() {
             appName.contains("Twitter", ignoreCase = true) || appName.contains("X", ignoreCase = true) -> R.color.twitter_color
             else -> R.color.default_warning_color
         }
-    }
-
-    private fun removeWarningOverlay() {
-        try {
-            // 자동 제거 작업 취소
-            autoRemoveJob?.cancel()
-
-            warningView?.let { view ->
-                // 애니메이션 효과 적용 후 제거
-                val slideOut = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.slide_out_top)
-                slideOut.setAnimationListener(object : android.view.animation.Animation.AnimationListener {
-                    override fun onAnimationStart(animation: android.view.animation.Animation?) {}
-
-                    override fun onAnimationEnd(animation: android.view.animation.Animation?) {
-                        try {
-                            windowManager?.removeView(view)
-                            warningView = null
-                            stopSelf()
-                        } catch (e: Exception) {
-                            Log.e(TAG, "애니메이션 후 경고창 제거 중 오류", e)
-                            stopSelf()
-                        }
-                    }
-
-                    override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
-                })
-
-                view.startAnimation(slideOut)
-            } ?: stopSelf()
-        } catch (e: Exception) {
-            Log.e(TAG, "경고창 제거 중 오류", e)
-            warningView = null
-            stopSelf()
-        }
-    }
-
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    override fun onDestroy() {
-        super.onDestroy()
-        removeWarningOverlay()
     }
 }
