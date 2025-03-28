@@ -8,7 +8,9 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.service.WalkingDetectorService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +31,8 @@ data class NotificationUiState(
 
 @HiltViewModel
 class NotificationViewModel @Inject constructor(
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NotificationUiState())
@@ -137,5 +140,29 @@ class NotificationViewModel @Inject constructor(
         }
 
         context.startService(stopIntent)
+    }
+
+    fun toggleNotifications(enabled: Boolean) {
+        viewModelScope.launch {
+            try {
+                notificationRepository.setNotificationEnabled(enabled)
+
+                // 서비스 제어
+                val intent = Intent(context, WalkingDetectorService::class.java).apply {
+                    action = if (enabled)
+                        WalkingDetectorService.ACTION_START
+                    else
+                        WalkingDetectorService.ACTION_STOP
+                }
+
+                if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (e: Exception) {
+                // 에러 처리
+            }
+        }
     }
 }

@@ -1,6 +1,11 @@
 package inu.appcenter.walkman.presentation.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,6 +21,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -29,7 +35,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -145,11 +153,20 @@ fun MainNavigationScreen(
                 MainNavigationItem.Home.route -> {
                     TopAppBar(
                         title = {
-                            Text(
-                                "GAITX",
-                                color = WalkManColors.Primary,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight()
+                                    .background(Color.Transparent),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Start
+                            ) {
+                                Text(
+                                    "GAITX",
+                                    color = WalkManColors.Primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = WalkManColors.Background
@@ -226,6 +243,9 @@ fun MainNavigationScreen(
                         // 선택된 탭은 계속 홈 탭으로 유지
                         selectedTab = MainNavigationItem.Home.route
                         navController.navigate("recording_modes")
+                    },
+                    onNavigateToNotificationSettings = {
+                        navController.navigate("notification_settings")
                     }
                 )
             }

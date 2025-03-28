@@ -1,7 +1,10 @@
 package inu.appcenter.walkman.presentation.screen.home
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -12,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -27,7 +31,8 @@ import java.util.*
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onStartNewRecording: () -> Unit = {}
+    onStartNewRecording: () -> Unit = {},
+    onNavigateToNotificationSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
@@ -35,46 +40,46 @@ fun HomeScreen(
 
     Column(
         modifier = Modifier
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
             .fillMaxSize()
-            .padding(16.dp)
             .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // 현재 날짜 표시 카드
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = WalkManColors.CardBackground
-            ),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = WalkManColors.Primary,
-                    fontWeight = FontWeight.Bold
-                )
+//        Card(
+//            modifier = Modifier.fillMaxWidth(),
+//            colors = CardDefaults.cardColors(
+//                containerColor = WalkManColors.CardBackground
+//            ),
+//            shape = RoundedCornerShape(12.dp),
+//            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+//        ) {
+//            Column(
+//                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+//                horizontalAlignment = Alignment.CenterHorizontally
+//            ) {
+//                Text(
+//                    text = stringResource(R.string.app_name),
+//                    style = MaterialTheme.typography.headlineSmall,
+//                    color = WalkManColors.Primary,
+//                    fontWeight = FontWeight.Bold
+//                )
+//
+//                Spacer(modifier = Modifier.height(8.dp))
+//
+//                Text(
+//                    text = SimpleDateFormat(
+//                        "yyyy년 MM월 dd일 (EEE)",
+//                        Locale.getDefault()
+//                    ).format(Calendar.getInstance().time),
+//                    style = MaterialTheme.typography.bodyMedium,
+//                    color = WalkManColors.TextSecondary
+//                )
+//            }
+//        }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = SimpleDateFormat(
-                        "yyyy년 MM월 dd일 (EEE)",
-                        Locale.getDefault()
-                    ).format(Calendar.getInstance().time),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = WalkManColors.TextSecondary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
+//        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
         // 걷기 중 소셜 미디어 사용 경고 기능 설명 카드
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -116,35 +121,56 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // 기능 활성화/비활성화 스위치
+                // 기능 상태 표시 및 설정 페이지 이동 버튼
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = stringResource(
-                            if (uiState.isTrackingEnabled)
-                                R.string.tracking_enabled
-                            else
-                                R.string.tracking_disabled
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    Switch(
-                        checked = uiState.isTrackingEnabled,
-                        onCheckedChange = { enabled ->
-                            viewModel.setTrackingEnabled(enabled)
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = WalkManColors.Primary,
-                            checkedTrackColor = WalkManColors.Primary.copy(alpha = 0.5f)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(
+                                    color = if (uiState.isTrackingEnabled)
+                                        WalkManColors.Success
+                                    else
+                                        WalkManColors.Error,
+                                    shape = CircleShape
+                                )
                         )
-                    )
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = stringResource(
+                                    if (uiState.isTrackingEnabled)
+                                        R.string.tracking_enabled
+                                    else
+                                        R.string.tracking_disabled
+                                ),
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = stringResource(R.string.detailed_settings_guide),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = WalkManColors.TextSecondary
+                            )
+                        }
+                    }
+                }
+                OutlinedButton(
+                    onClick = onNavigateToNotificationSettings,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = WalkManColors.Primary
+                    ),
+                    border = BorderStroke(1.dp, WalkManColors.Primary)
+                ) {
+                    Text(stringResource(R.string.settings_button))
                 }
             }
         }

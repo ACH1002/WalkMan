@@ -127,6 +127,20 @@ class MainActivity : ComponentActivity() {
     private fun checkAndRequestPermissions() {
         val permissions = mutableListOf<String>()
 
+        // 위치 권한 추가
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            // 위치 권한에 대한 설명 다이얼로그 추가
+            AlertDialog.Builder(this)
+                .setTitle("위치 권한 필요")
+                .setMessage("걷기 패턴 분석과 정확한 이동 경로 추적을 위해 위치 정보가 필요합니다. 사용자의 동의를 부탁드립니다.")
+                .setPositiveButton("허용") { _, _ ->
+                    permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+                    permissionsLauncher.launch(permissions.toTypedArray())
+                }
+                .setNegativeButton("거부", null)
+                .show()
+        }
+
         // 센서 권한 (Android 10 이상)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
             checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {

@@ -1,9 +1,15 @@
 package inu.appcenter.walkman.presentation.viewmodel
 
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
+import inu.appcenter.walkman.domain.repository.NotificationRepository
+import inu.appcenter.walkman.service.WalkingDetectorService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,7 +22,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val appUsageRepository: AppUsageRepository
+    private val notificationRepository: NotificationRepository
 ) : ViewModel() {
 
     // UI 상태
@@ -28,40 +34,14 @@ class HomeViewModel @Inject constructor(
     val appUsageData: StateFlow<List<Any>> = _appUsageData.asStateFlow()
 
     init {
-        // 앱 추적 활성화 상태 확인
-        checkTrackingEnabled()
-
-        // 로딩 완료 상태로 설정
-        _uiState.update { it.copy(isLoading = false) }
-    }
-
-    /**
-     * 앱 추적 활성화 상태 확인
-     */
-    private fun checkTrackingEnabled() {
         viewModelScope.launch {
-            try {
-                appUsageRepository.isTrackingEnabled().collect { enabled ->
-                    _uiState.update { it.copy(isTrackingEnabled = enabled) }
-                }
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+            notificationRepository.isTrackingEnabled().collect { enabled ->
+                _uiState.update { it.copy(isTrackingEnabled = enabled) }
             }
         }
     }
 
-    /**
-     * 앱 추적 활성화/비활성화
-     */
-    fun setTrackingEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            try {
-                appUsageRepository.setTrackingEnabled(enabled)
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
-            }
-        }
-    }
+
 }
 
 /**

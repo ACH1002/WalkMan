@@ -70,6 +70,12 @@
     <string name="mbti_gait_analysis_description">Analyze the correlation between MBTI personality types and gait patterns based on the collected data.</string>
     <string name="view_details">View Details</string>
 
+    <!-- 홈 화면 알림 설정 관련 -->
+    <string name="detailed_settings_guide">Detailed settings can be configured in Notification Settings</string>
+    <string name="settings_button">Settings</string>
+
+    <!-- 모니터링 앱 관련 -->
+
     <!-- 언어 설정 -->
     <string name="language">Language</string>
     <string name="language_en">English</string>

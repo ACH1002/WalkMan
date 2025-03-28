@@ -19,5 +19,7 @@ interface NotificationRepository {
      */
     suspend fun setNotificationEnabled(enabled: Boolean)
 
+    fun isTrackingEnabled(): Flow<Boolean>
+
 
 }

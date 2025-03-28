@@ -134,13 +134,7 @@ fun NotificationSettingsScreen(
                             checked = uiState.isNotificationEnabled,
                             onCheckedChange = { isChecked ->
                                 // 알림 설정 변경 시 처리
-                                if (isChecked) {
-                                    // 알림 활성화 요청
-                                    viewModel.enableNotifications(context)
-                                } else {
-                                    // 알림 비활성화 요청
-                                    viewModel.disableNotifications(context)
-                                }
+                                viewModel.toggleNotifications(isChecked)
                             },
                             colors = SwitchDefaults.colors(
                                 checkedThumbColor = WalkManColors.Primary,
