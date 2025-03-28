@@ -1,6 +1,5 @@
 package inu.appcenter.walkman.di
 
-
 import android.content.Context
 import dagger.Module
 import dagger.Provides
@@ -11,13 +10,11 @@ import inu.appcenter.walkman.data.datasource.DriveServiceHelper
 import inu.appcenter.walkman.data.repository.AppUsageRepositoryImpl
 import inu.appcenter.walkman.data.repository.NotificationRepositoryImpl
 import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
-import inu.appcenter.walkman.data.repository.StepCountRepositoryImpl
 import inu.appcenter.walkman.data.repository.StorageRepositoryImpl
 import inu.appcenter.walkman.data.repository.UserRepositoryImpl
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.domain.repository.SensorRepository
-import inu.appcenter.walkman.domain.repository.StepCountRepository
 import inu.appcenter.walkman.domain.repository.StorageRepository
 import inu.appcenter.walkman.domain.repository.UserRepository
 import javax.inject.Singleton
@@ -37,13 +34,15 @@ object AppModule {
         )
     }
 
+    /**
+     * 센서 저장소 제공 - 걷기 감지와 센서 데이터 수집 기능을 모두 제공하는 하이브리드 버전
+     */
     @Provides
     @Singleton
     fun provideSensorRepository(
-        @ApplicationContext context: Context,
-        stepCountRepository: StepCountRepository
+        @ApplicationContext context: Context
     ): SensorRepository {
-        return SensorRepositoryImpl(context, stepCountRepository)
+        return SensorRepositoryImpl(context)
     }
 
     @Provides
@@ -65,20 +64,15 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideStepCountRepository(
-        @ApplicationContext context: Context
-    ): StepCountRepository {
-        return StepCountRepositoryImpl(context)
-    }
-
-    @Provides
-    @Singleton
     fun provideNotificationRepository(
         @ApplicationContext context: Context
     ): NotificationRepository {
         return NotificationRepositoryImpl(context)
     }
 
+    /**
+     * 앱 사용 저장소 제공 - 소셜 미디어 앱 감지를 위한 간소화된 버전
+     */
     @Provides
     @Singleton
     fun provideAppUsageRepository(

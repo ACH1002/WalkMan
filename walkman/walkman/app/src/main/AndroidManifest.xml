@@ -72,18 +72,11 @@
             </intent-filter>
         </activity>
 
-        <!-- 걸음 수 측정 서비스 -->
         <service
-            android:name=".service.StepCounterService"
+            android:name=".service.WalkingDetectorService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="location|dataSync" />
-
-        <service
-            android:name=".service.AppUsageTrackingService"
-            android:foregroundServiceType="dataSync|shortService"
-            android:exported="false">
-        </service>
+            android:foregroundServiceType="dataSync" />
 
         <!-- 걷기 중 경고 알림 서비스 -->
         <service

@@ -3,7 +3,6 @@ package inu.appcenter.walkman.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import inu.appcenter.walkman.domain.model.AppUsageData
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,6 +11,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * 홈 화면 뷰모델 - 간소화된 버전
+ */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val appUsageRepository: AppUsageRepository
@@ -22,53 +24,51 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     // 앱 사용 데이터
-    private val _appUsageData = MutableStateFlow<List<AppUsageData>>(emptyList())
-    val appUsageData: StateFlow<List<AppUsageData>> = _appUsageData.asStateFlow()
+    private val _appUsageData = MutableStateFlow<List<Any>>(emptyList())
+    val appUsageData: StateFlow<List<Any>> = _appUsageData.asStateFlow()
 
     init {
-        // 앱 사용 데이터 로드
-        loadAppUsageData()
+        // 앱 추적 활성화 상태 확인
+        checkTrackingEnabled()
+
+        // 로딩 완료 상태로 설정
+        _uiState.update { it.copy(isLoading = false) }
     }
 
-    private fun loadAppUsageData() {
+    /**
+     * 앱 추적 활성화 상태 확인
+     */
+    private fun checkTrackingEnabled() {
         viewModelScope.launch {
             try {
-                appUsageRepository.getAppUsageData().collect { usageData ->
-                    _appUsageData.value = usageData
-
-                    // 총 사용 시간 계산
-                    val totalDuration = usageData.sumOf { it.usageDurationMs }
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            totalSocialMediaUsage = totalDuration,
-                            isLoading = false
-                        )
-                    }
+                appUsageRepository.isTrackingEnabled().collect { enabled ->
+                    _uiState.update { it.copy(isTrackingEnabled = enabled) }
                 }
             } catch (e: Exception) {
-                _uiState.update { currentState ->
-                    currentState.copy(
-                        error = e.message,
-                        isLoading = false
-                    )
-                }
+                _uiState.update { it.copy(error = e.message) }
             }
         }
     }
 
-    // 앱 사용 데이터 리셋
-    fun resetAppUsage() {
+    /**
+     * 앱 추적 활성화/비활성화
+     */
+    fun setTrackingEnabled(enabled: Boolean) {
         viewModelScope.launch {
-            appUsageRepository.resetAppUsage()
+            try {
+                appUsageRepository.setTrackingEnabled(enabled)
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = e.message) }
+            }
         }
     }
 }
 
 /**
- * 홈 화면 UI 상태 클래스
+ * 홈 화면 UI 상태 클래스 - 간소화된 버전
  */
 data class HomeUiState(
     val isLoading: Boolean = true,
-    val totalSocialMediaUsage: Long = 0L, // 총 소셜 미디어 사용 시간(ms)
+    val isTrackingEnabled: Boolean = true,
     val error: String? = null
 )

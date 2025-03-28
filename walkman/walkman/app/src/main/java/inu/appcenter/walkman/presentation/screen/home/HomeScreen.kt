@@ -10,22 +10,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import inu.appcenter.walkman.presentation.screen.home.components.MbtiAnalysisCard
-import inu.appcenter.walkman.presentation.screen.home.components.SocialMediaUsageCard
+import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.HomeViewModel
-import inu.appcenter.walkman.util.LanguageManager
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,11 +29,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onStartNewRecording: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val languageManager = remember { LanguageManager(context) }
-
     val uiState by viewModel.uiState.collectAsState()
-    val appUsageData by viewModel.appUsageData.collectAsState()
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -49,18 +41,6 @@ fun HomeScreen(
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
-                },
-                actions = {
-                    // 데이터 초기화 버튼
-                    IconButton(onClick = {
-                        viewModel.resetAppUsage()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = "데이터 초기화",
-                            tint = WalkManColors.Primary
-                        )
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = WalkManColors.Background
@@ -77,7 +57,7 @@ fun HomeScreen(
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 오늘 날짜 및 총 사용 시간 카드
+            // 현재 날짜 표시 카드
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -91,8 +71,8 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "오늘의 소셜 미디어 사용 현황",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.headlineSmall,
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
@@ -102,55 +82,164 @@ fun HomeScreen(
                     Text(
                         text = SimpleDateFormat(
                             "yyyy년 MM월 dd일 (EEE)",
-                            Locale.KOREA
+                            Locale.getDefault()
                         ).format(Calendar.getInstance().time),
                         style = MaterialTheme.typography.bodyMedium,
                         color = WalkManColors.TextSecondary
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 걷기 중 소셜 미디어 사용 경고 기능 설명 카드
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = WalkManColors.CardBackground
+                ),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = null,
+                        tint = WalkManColors.Primary,
+                        modifier = Modifier.size(48.dp)
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (uiState.isLoading) {
-                        CircularProgressIndicator(color = WalkManColors.Primary)
-                    } else {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // 총 사용 시간 표시
-                            Text(
-                                text = formatDuration(uiState.totalSocialMediaUsage),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = WalkManColors.Primary,
-                                fontWeight = FontWeight.Bold
-                            )
+                    Text(
+                        text = stringResource(R.string.walking_detection_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = WalkManColors.Primary,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                            Text(
-                                text = "걷는 중 소셜 미디어 총 사용 시간",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = WalkManColors.TextSecondary
+                    Text(
+                        text = stringResource(R.string.walking_detection_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WalkManColors.TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 기능 활성화/비활성화 스위치
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(
+                                if (uiState.isTrackingEnabled)
+                                    R.string.tracking_enabled
+                                else
+                                    R.string.tracking_disabled
+                            ),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Switch(
+                            checked = uiState.isTrackingEnabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.setTrackingEnabled(enabled)
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = WalkManColors.Primary,
+                                checkedTrackColor = WalkManColors.Primary.copy(alpha = 0.5f)
                             )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 제한된 소셜 미디어 앱 설명 카드
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = WalkManColors.CardBackground
+                ),
+                shape = RoundedCornerShape(12.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.monitored_apps_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = WalkManColors.Primary,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = stringResource(R.string.monitored_apps_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WalkManColors.TextPrimary
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 소셜 미디어 앱 리스트
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    ) {
+                        listOf(
+                            "YouTube",
+                            "Instagram",
+                            "Facebook",
+                            "Twitter/X",
+                            "TikTok",
+                            "Snapchat"
+                        ).forEach { app ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = WalkManColors.Success,
+                                    modifier = Modifier.size(16.dp)
+                                )
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Text(
+                                    text = app,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = WalkManColors.TextPrimary
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // 앱별 사용 시간 카드
-            SocialMediaUsageCard(
-                appUsageData = appUsageData,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            MbtiAnalysisCard()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 측정 시작 버튼
+            // 데이터 측정 시작 버튼 - 복원
             Button(
                 onClick = onStartNewRecording,
                 colors = ButtonDefaults.buttonColors(
@@ -163,29 +252,18 @@ fun HomeScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.DirectionsWalk,
-                    contentDescription = "걷기 측정 시작",
+                    contentDescription = null,
                     modifier = Modifier.size(24.dp)
                 )
+
                 Spacer(modifier = Modifier.width(8.dp))
+
                 Text(
-                    text = "걷기 측정 시작",
+                    text = stringResource(id = R.string.start_new_recording),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
-    }
-}
-
-// 시간 형식 변환 함수
-private fun formatDuration(durationMs: Long): String {
-    val hours = TimeUnit.MILLISECONDS.toHours(durationMs)
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(durationMs) % 60
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(durationMs) % 60
-
-    return when {
-        hours > 0 -> "${hours}시간 ${minutes}분 ${seconds}초"
-        minutes > 0 -> "${minutes}분 ${seconds}초"
-        else -> "${seconds}초"
     }
 }

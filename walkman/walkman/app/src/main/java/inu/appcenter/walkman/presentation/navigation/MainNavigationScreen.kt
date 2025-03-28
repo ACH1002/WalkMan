@@ -138,71 +138,55 @@ fun MainNavigationScreen(
     Scaffold(
         bottomBar = {
             // 측정 관련 화면에서는 하단 바를 숨기지 않고, 홈 탭을 선택된 상태로 표시
-            if (!isRecordingRelatedScreen){
-                NavigationBar(
-                    containerColor = WalkManColors.Background,
-                    tonalElevation = 8.dp,
-                    modifier = Modifier.height(56.dp), // 기본값은 일반적으로 80dp
-                ) {
-                    navigationItems.forEach { item ->
-                        // 측정 화면에서는 홈 탭을 선택된 상태로 표시
-                        val selected = if (isRecordingRelatedScreen) {
-                            item.route == MainNavigationItem.Home.route
-                        } else {
-                            item.route == selectedTab
-                        }
+            NavigationBar(
+                containerColor = WalkManColors.Background,
+                tonalElevation = 8.dp,
+                modifier = Modifier.height(56.dp)
+            ) {
+                navigationItems.forEach { item ->
+                    val selected = item.route == selectedTab
 
-                        NavigationBarItem(
-                            icon = {
-                                Box(modifier = Modifier.size(25.dp)) { // 아이콘 크기 줄이기
-                                    if (selected) {
-                                        item.selectedIcon()
-                                    } else {
-                                        item.unselectedIcon()
-                                    }
-                                }
-                            },
-                            label = {
-                                Text(
-                                    text = stringResource(item.titleResId),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontSize = 11.sp,
-                                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            selected = selected,
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = WalkManColors.Primary,
-                                selectedTextColor = WalkManColors.Primary,
-                                indicatorColor = WalkManColors.Primary.copy(alpha = 0.1f),
-                                unselectedIconColor = WalkManColors.TextSecondary,
-                                unselectedTextColor = WalkManColors.TextSecondary
-                            ),
-                            onClick = {
-                                // 이미 해당 탭에 있는 경우 아무 동작 안함
-                                if (selectedTab == item.route) return@NavigationBarItem
-
-                                selectedTab = item.route
-
-                                // 측정 관련 화면에서 다른 탭으로 이동할 경우, 필요하다면 확인 다이얼로그 표시 가능
-                                if (isRecordingRelatedScreen) {
-                                    // 측정 화면에서 나갈 때 추가 처리가 필요하면 여기에 구현
-                                    // 예: 측정 중단 다이얼로그 표시, 데이터 저장 등
-                                }
-
-                                navController.navigate(item.route) {
-                                    // 백 스택에서 시작 목적지까지 팝
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    // 같은 항목을 다시 선택할 때 중복 항목 피하기
-                                    launchSingleTop = true
-                                    // 이전에 선택한 항목의 상태 복원
-                                    restoreState = true
+                    NavigationBarItem(
+                        icon = {
+                            Box(modifier = Modifier.size(25.dp)) {
+                                if (selected) {
+                                    item.selectedIcon()
+                                } else {
+                                    item.unselectedIcon()
                                 }
                             }
-                        )
-                    }
+                        },
+                        label = {
+                            Text(
+                                text = stringResource(item.titleResId),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontSize = 11.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        selected = selected,
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = WalkManColors.Primary,
+                            selectedTextColor = WalkManColors.Primary,
+                            indicatorColor = WalkManColors.Primary.copy(alpha = 0.1f),
+                            unselectedIconColor = WalkManColors.TextSecondary,
+                            unselectedTextColor = WalkManColors.TextSecondary
+                        ),
+                        onClick = {
+                            // 이미 해당 탭에 있는 경우 아무 동작 안함
+                            if (selectedTab == item.route) return@NavigationBarItem
+
+                            selectedTab = item.route
+
+                            navController.navigate(item.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
                 }
             }
         }

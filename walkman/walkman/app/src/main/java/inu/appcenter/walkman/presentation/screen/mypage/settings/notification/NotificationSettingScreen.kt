@@ -25,7 +25,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.NotificationViewModel
-import inu.appcenter.walkman.service.StepCounterService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

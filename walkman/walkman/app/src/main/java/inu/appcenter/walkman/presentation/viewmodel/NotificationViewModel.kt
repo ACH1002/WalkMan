@@ -10,7 +10,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import inu.appcenter.walkman.domain.repository.NotificationRepository
-import inu.appcenter.walkman.service.StepCounterService
+import inu.appcenter.walkman.service.WalkingDetectorService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,8 +53,8 @@ class NotificationViewModel @Inject constructor(
                 // 저장소에 설정 저장
                 notificationRepository.setNotificationEnabled(true)
 
-                // 서비스 시작
-                startStepCounterService(context)
+                // 걷기 감지 서비스 시작
+                startWalkingDetectorService(context)
 
                 _uiState.update { it.copy(isNotificationEnabled = true, errorMessage = null) }
             } catch (e: Exception) {
@@ -72,8 +72,8 @@ class NotificationViewModel @Inject constructor(
                 // 저장소에 설정 저장
                 notificationRepository.setNotificationEnabled(false)
 
-                // 서비스 중지
-                stopStepCounterService(context)
+                // 걷기 감지 서비스 중지
+                stopWalkingDetectorService(context)
 
                 _uiState.update { it.copy(isNotificationEnabled = false, errorMessage = null) }
             } catch (e: Exception) {
@@ -114,10 +114,12 @@ class NotificationViewModel @Inject constructor(
     }
 
     /**
-     * StepCounter 서비스 시작
+     * 걷기 감지 서비스 시작
      */
-    private fun startStepCounterService(context: Context) {
-        val serviceIntent = Intent(context, StepCounterService::class.java)
+    private fun startWalkingDetectorService(context: Context) {
+        val serviceIntent = Intent(context, WalkingDetectorService::class.java).apply {
+            action = WalkingDetectorService.ACTION_START
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent)
@@ -127,17 +129,13 @@ class NotificationViewModel @Inject constructor(
     }
 
     /**
-     * StepCounter 서비스 중지
+     * 걷기 감지 서비스 중지
      */
-    private fun stopStepCounterService(context: Context) {
-        val stopIntent = Intent(context, StepCounterService::class.java).apply {
-            action = StepCounterService.ACTION_STOP_SERVICE
+    private fun stopWalkingDetectorService(context: Context) {
+        val stopIntent = Intent(context, WalkingDetectorService::class.java).apply {
+            action = WalkingDetectorService.ACTION_STOP
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(stopIntent)
-        } else {
-            context.startService(stopIntent)
-        }
+        context.startService(stopIntent)
     }
 }

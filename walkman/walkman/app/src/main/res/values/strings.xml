@@ -140,18 +140,40 @@
     <string name="step_tracking_enabled">Step tracking enabled</string>
     <string name="step_tracking_disabled">Step tracking disabled</string>
 
+    <!-- Walking detection feature related -->
+    <string name="walking_detection_title">Social Media Alerts While Walking</string>
+    <string name="walking_detection_description">Using social media apps while walking can be dangerous due to distraction. When this feature is enabled, you will receive warning notifications when using social media apps while walking.</string>
+    <string name="tracking_enabled">Warning feature enabled</string>
+    <string name="tracking_disabled">Warning feature disabled</string>
+
+    <!-- Monitored apps related -->
+    <string name="monitored_apps_title">Monitored Social Media Apps</string>
+    <string name="monitored_apps_description">You will receive warning notifications when using these apps while walking:</string>
+
+    <!-- Safe walking related -->
+    <string name="safe_walking_guide">Safe Walking Guide</string>
+
     <!-- Battery optimization guidance -->
     <string name="battery_optimization_title">Settings for More Accurate Step Counting</string>
     <string name="battery_optimization_description">On some devices, battery optimization may interrupt step counting in the background. We recommend disabling battery optimization for more accurate measurements.</string>
     <string name="battery_optimization_button">Battery Optimization Settings</string>
 
     <!-- Permission related -->
-    <string name="notification_permission_title">Notification Permission Required</string>
-    <string name="notification_permission_message">Notification permission is required for step tracking functionality. Please allow this permission in settings.</string>
+    <string name="permission_overlay_title">Screen Overlay Permission</string>
+    <string name="permission_overlay_message">Permission to display over other apps is required to show warnings when using social media while walking.</string>
+    <string name="permission_usage_stats_title">App Usage Stats Permission</string>
+    <string name="permission_usage_stats_message">Permission to access app usage statistics is required to detect social media usage while walking.</string>
     <string name="go_to_settings">Go to Settings</string>
     <string name="cancel">Cancel</string>
+    <string name="notification_permission_title">Notification Permission Required</string>
+    <string name="notification_permission_message">Permission to show notifications is required to run the walking detection service. Please enable notification permission in settings.</string>
 
-    <string name="walking_warning_message">Be cautious while using your smartphone while walking. Stay focused on your surroundings and minimize distractions during walking.</string>
-    <string name="walking_warning_message_with_app">Warning: Using %s while walking is dangerous! Please stop and use it in a safe place.</string>
+    <string name="walking_warning_message">It\'s not safe to look at your screen while walking. You may risk falling.</string>
+    <string name="walking_warning_message_with_app">Using %s while walking is dangerous. Please stop and use your phone safely.</string>
     <string name="btn_dismiss">OK</string>
+    <string name="app_icon">App Icon</string>
+
+    <!-- 서비스 관련 -->
+    <string name="walking_detector_service_name">Walking Detection Service</string>
+    <string name="walking_detector_service_description">Provides warnings when using social media while walking</string>
 </resources>
