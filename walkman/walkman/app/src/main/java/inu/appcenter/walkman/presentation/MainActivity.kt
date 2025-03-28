@@ -21,6 +21,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.BuildConfig
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
@@ -68,8 +70,17 @@ class MainActivity : ComponentActivity() {
         languageManager = LanguageManager(this)
 
         // 상태바 설정
+        // 상태바 설정 수정 부분
         WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
+
+        // 시스템 바 색상 및 가시성 설정
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true // 상태 바 아이콘 색상 (true: 어두운 색, false: 밝은 색)
+            isAppearanceLightNavigationBars = true // 내비게이션 바 아이콘 색상
+            hide(WindowInsetsCompat.Type.systemBars()) // 시스템 바 숨기기
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE // 스와이프 시 일시적으로 표시
+        }
 
         // 필요한 권한 확인 및 요청
         checkAndRequestPermissions()

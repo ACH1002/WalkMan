@@ -18,9 +18,11 @@ import androidx.core.content.ContextCompat
 import inu.appcenter.walkman.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 걷는 중 소셜미디어 사용 시 경고 오버레이를 표시하는 서비스
@@ -37,6 +39,7 @@ class WalkingWarningService : Service() {
     private var windowManager: WindowManager? = null
     private var warningView: View? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var autoRemoveJob: Job? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_SHOW_WARNING) {
@@ -48,7 +51,8 @@ class WalkingWarningService : Service() {
     }
 
     private fun showWarningOverlay(appName: String = "") {
-        Log.d(TAG, "경고창 표시: $appName")
+        // 기존 작업 취소
+        autoRemoveJob?.cancel()
 
         // 이미 표시 중이면 제거 후 다시 표시
         if (warningView != null) {
@@ -112,10 +116,12 @@ class WalkingWarningService : Service() {
             warningView?.startAnimation(slideIn)
 
             // 일정 시간 후 자동 제거
-            serviceScope.launch {
+            autoRemoveJob = serviceScope.launch {
                 delay(WARNING_DURATION)
-                if (warningView != null) {
-                    removeWarningOverlay()
+                withContext(Dispatchers.Main) {
+                    if (warningView != null) {
+                        removeWarningOverlay()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -150,6 +156,9 @@ class WalkingWarningService : Service() {
 
     private fun removeWarningOverlay() {
         try {
+            // 자동 제거 작업 취소
+            autoRemoveJob?.cancel()
+
             warningView?.let { view ->
                 // 애니메이션 효과 적용 후 제거
                 val slideOut = android.view.animation.AnimationUtils.loadAnimation(this, R.anim.slide_out_top)

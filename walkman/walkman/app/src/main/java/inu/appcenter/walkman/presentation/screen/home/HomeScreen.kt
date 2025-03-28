@@ -32,238 +32,220 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        "GAITX",
-                        color = WalkManColors.Primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = WalkManColors.Background
-                )
-            )
-        },
-        containerColor = WalkManColors.Background,
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .verticalScroll(scrollState),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 현재 날짜 표시 카드
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = WalkManColors.CardBackground
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            // 현재 날짜 표시 카드
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = WalkManColors.CardBackground
-                ),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = WalkManColors.Primary,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = SimpleDateFormat(
+                        "yyyy년 MM월 dd일 (EEE)",
+                        Locale.getDefault()
+                    ).format(Calendar.getInstance().time),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = WalkManColors.TextSecondary
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 걷기 중 소셜 미디어 사용 경고 기능 설명 카드
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = WalkManColors.CardBackground
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = null,
+                    tint = WalkManColors.Primary,
+                    modifier = Modifier.size(48.dp)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.walking_detection_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WalkManColors.Primary,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = stringResource(R.string.walking_detection_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = WalkManColors.TextPrimary,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 기능 활성화/비활성화 스위치
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = WalkManColors.Primary,
-                        fontWeight = FontWeight.Bold
+                        text = stringResource(
+                            if (uiState.isTrackingEnabled)
+                                R.string.tracking_enabled
+                            else
+                                R.string.tracking_disabled
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = SimpleDateFormat(
-                            "yyyy년 MM월 dd일 (EEE)",
-                            Locale.getDefault()
-                        ).format(Calendar.getInstance().time),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = WalkManColors.TextSecondary
+                    Switch(
+                        checked = uiState.isTrackingEnabled,
+                        onCheckedChange = { enabled ->
+                            viewModel.setTrackingEnabled(enabled)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = WalkManColors.Primary,
+                            checkedTrackColor = WalkManColors.Primary.copy(alpha = 0.5f)
+                        )
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-            // 걷기 중 소셜 미디어 사용 경고 기능 설명 카드
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = WalkManColors.CardBackground
-                ),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        // 제한된 소셜 미디어 앱 설명 카드
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = WalkManColors.CardBackground
+            ),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
+                Text(
+                    text = stringResource(R.string.monitored_apps_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WalkManColors.Primary,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = stringResource(R.string.monitored_apps_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = WalkManColors.TextPrimary
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 소셜 미디어 앱 리스트
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = null,
-                        tint = WalkManColors.Primary,
-                        modifier = Modifier.size(48.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = stringResource(R.string.walking_detection_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = WalkManColors.Primary,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = stringResource(R.string.walking_detection_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = WalkManColors.TextPrimary,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 기능 활성화/비활성화 스위치
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = stringResource(
-                                if (uiState.isTrackingEnabled)
-                                    R.string.tracking_enabled
-                                else
-                                    R.string.tracking_disabled
-                            ),
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        Switch(
-                            checked = uiState.isTrackingEnabled,
-                            onCheckedChange = { enabled ->
-                                viewModel.setTrackingEnabled(enabled)
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = WalkManColors.Primary,
-                                checkedTrackColor = WalkManColors.Primary.copy(alpha = 0.5f)
+                    listOf(
+                        "YouTube",
+                        "Instagram",
+                        "Facebook",
+                        "Twitter/X",
+                        "TikTok",
+                        "Snapchat"
+                    ).forEach { app ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = WalkManColors.Success,
+                                modifier = Modifier.size(16.dp)
                             )
-                        )
-                    }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
 
-            // 제한된 소셜 미디어 앱 설명 카드
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = WalkManColors.CardBackground
-                ),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.monitored_apps_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = WalkManColors.Primary,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = stringResource(R.string.monitored_apps_description),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = WalkManColors.TextPrimary
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 소셜 미디어 앱 리스트
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                    ) {
-                        listOf(
-                            "YouTube",
-                            "Instagram",
-                            "Facebook",
-                            "Twitter/X",
-                            "TikTok",
-                            "Snapchat"
-                        ).forEach { app ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = WalkManColors.Success,
-                                    modifier = Modifier.size(16.dp)
-                                )
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                Text(
-                                    text = app,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = WalkManColors.TextPrimary
-                                )
-                            }
+                            Text(
+                                text = app,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = WalkManColors.TextPrimary
+                            )
                         }
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
-            // 데이터 측정 시작 버튼 - 복원
-            Button(
-                onClick = onStartNewRecording,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = WalkManColors.Primary
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.DirectionsWalk,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
+        // 데이터 측정 시작 버튼 - 복원
+        Button(
+            onClick = onStartNewRecording,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = WalkManColors.Primary
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.DirectionsWalk,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
 
-                Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-                Text(
-                    text = stringResource(id = R.string.start_new_recording),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Text(
+                text = stringResource(id = R.string.start_new_recording),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
