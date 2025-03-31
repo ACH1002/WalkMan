@@ -4,6 +4,7 @@
     <string name="navigation_home">Home</string>
     <string name="navigation_mbti">MBTI</string>
     <string name="navigation_ml_model">Model</string>
+    <string name="navigation_gait_analysis">Gait</string>
     <string name="navigation_mypage">My Page</string>
 
     <!-- 앱 기본 정보 -->
