@@ -153,11 +153,11 @@
     <string name="date_format">yyyy년 MM월 dd일</string>
 
 
-    <!-- 알림 설정 화면 관련 -->
-    <string name="step_tracking_notifications">걸음 수 추적 알림</string>
-    <string name="step_tracking_description">걸음 수 추적 기능을 활성화하면 앱이 백그라운드에서도 계속 걸음 수를 측정하고 알림을 표시합니다.</string>
-    <string name="step_tracking_enabled">걸음 수 추적 활성화됨</string>
-    <string name="step_tracking_disabled">걸음 수 추적 비활성화됨</string>
+    <!-- 알림 설정 화면 관련 (Korean) -->
+    <string name="step_tracking_notifications">걷기 중 소셜 미디어 사용 경고</string>
+    <string name="step_tracking_description">이 기능을 활성화하면 걷는 중에 소셜 미디어 앱을 사용할 경우 경고 알림이 표시됩니다. 안전한 보행을 위해 권장합니다.</string>
+    <string name="step_tracking_enabled">걷기 감지 및 경고 활성화됨</string>
+    <string name="step_tracking_disabled">걷기 감지 및 경고 비활성화됨</string>
 
     <!-- 배터리 최적화 안내 -->
     <string name="battery_optimization_title">더 정확한 걸음 수 측정을 위한 설정</string>

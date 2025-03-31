@@ -3,6 +3,8 @@ package inu.appcenter.walkman
 import android.app.Application
 import android.content.Context
 import dagger.hilt.android.HiltAndroidApp
+import inu.appcenter.walkman.data.repository.NotificationRepositoryImpl
+import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.util.LanguageManager
 
 
@@ -10,10 +12,16 @@ import inu.appcenter.walkman.util.LanguageManager
 class WalkManApplication : Application() {
     private lateinit var languageManager: LanguageManager
 
+    // 전역에서 접근 가능한 NotificationRepository 추가
+    lateinit var notificationRepository: NotificationRepository
+        private set
+
     override fun onCreate() {
         super.onCreate()
         languageManager = LanguageManager(this)
-        // 필요한 초기화 코드는 여기에
+
+        // NotificationRepository 초기화
+        notificationRepository = NotificationRepositoryImpl(this)
     }
 
     override fun attachBaseContext(base: Context) {

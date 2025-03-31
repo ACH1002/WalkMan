@@ -140,11 +140,11 @@
     <!-- 영어 리소스 (values-en/strings.xml) -->
     <string name="date_format">MMMM dd, yyyy</string>
 
-    <!-- Notification settings screen related -->
-    <string name="step_tracking_notifications">Step Tracking Notifications</string>
-    <string name="step_tracking_description">When step tracking is enabled, the app will continue to count steps and display notifications even in the background.</string>
-    <string name="step_tracking_enabled">Step tracking enabled</string>
-    <string name="step_tracking_disabled">Step tracking disabled</string>
+    <!-- Notification settings related (English) -->
+    <string name="step_tracking_notifications">Walking Safety Alert</string>
+    <string name="step_tracking_description">When enabled, you\'ll receive warning alerts if you use social media apps while walking. This is recommended for safer walking habits.</string>
+    <string name="step_tracking_enabled">Walking detection and alerts enabled</string>
+    <string name="step_tracking_disabled">Walking detection and alerts disabled</string>
 
     <!-- Walking detection feature related -->
     <string name="walking_detection_title">Social Media Alerts While Walking</string>

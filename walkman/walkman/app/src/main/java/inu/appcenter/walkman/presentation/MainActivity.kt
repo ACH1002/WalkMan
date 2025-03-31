@@ -25,11 +25,16 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.BuildConfig
+import inu.appcenter.walkman.WalkManApplication
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.MainViewModel
 import inu.appcenter.walkman.service.WalkingDetectorService
 import inu.appcenter.walkman.util.LanguageManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 private const val TAG = "MainActivity"
 private const val REQUEST_USAGE_STATS_PERMISSION = 1001
@@ -118,9 +123,33 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
 
-        // 앱이 활성화될 때 걷기 감지 서비스 상태 확인
+        // 권한이 있을 경우에만 설정에 따라 서비스 시작 또는 중지
         if (hasUsageStatsPermission() && arePermissionsGranted()) {
-            startWalkingDetectorService()
+            checkNotificationSettingsAndUpdateService()
+        }
+    }
+
+    private fun checkNotificationSettingsAndUpdateService() {
+        // 코루틴 스코프 생성
+        val scope = CoroutineScope(Dispatchers.Main)
+
+        scope.launch {
+            try {
+                // NotificationRepository 인스턴스 가져오기
+                val notificationRepo = (application as? WalkManApplication)?.notificationRepository
+                    ?: return@launch
+
+                // 현재 설정 상태 확인
+                val isEnabled = notificationRepo.isNotificationEnabled().first()
+
+                if (isEnabled) {
+                    startWalkingDetectorService()
+                } else {
+                    stopWalkingDetectorService()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "설정 확인 중 오류 발생", e)
+            }
         }
     }
 
