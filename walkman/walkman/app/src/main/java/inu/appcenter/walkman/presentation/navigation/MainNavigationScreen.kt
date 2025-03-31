@@ -14,10 +14,12 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.ShowChart
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +54,7 @@ import androidx.navigation.compose.rememberNavController
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.GaitAnalysisScreen
 import inu.appcenter.walkman.presentation.screen.home.HomeScreen
 import inu.appcenter.walkman.presentation.screen.mypage.MyPageScreen
 import inu.appcenter.walkman.presentation.screen.recording.RecordingScreen
@@ -84,11 +87,11 @@ sealed class MainNavigationItem(
         unselectedIcon = { Icon(Icons.Outlined.Psychology, contentDescription = "MBTI") }
     )
 
-    object MLModel : MainNavigationItem(
-        route = "ml_model",
-        titleResId = R.string.navigation_ml_model, // 리소스 추가
-        selectedIcon = { Icon(Icons.Filled.Settings, contentDescription = "모델 관리") },
-        unselectedIcon = { Icon(Icons.Outlined.Settings, contentDescription = "모델 관리") }
+    object GaitAnalysis : MainNavigationItem(
+        route = "gait_analysis",
+        titleResId = R.string.navigation_gait_analysis, // 리소스 추가 필요
+        selectedIcon = { Icon(Icons.Filled.ShowChart, contentDescription = "보행 분석") },
+        unselectedIcon = { Icon(Icons.Outlined.ShowChart, contentDescription = "보행 분석") }
     )
 
     object MyPage : MainNavigationItem(
@@ -111,7 +114,7 @@ fun MainNavigationScreen(
     val navigationItems = listOf(
         MainNavigationItem.Home,
         MainNavigationItem.MBTI,
-        MainNavigationItem.MLModel,
+        MainNavigationItem.GaitAnalysis,
         MainNavigationItem.MyPage
     )
 
@@ -254,8 +257,9 @@ fun MainNavigationScreen(
                 // MBTI 화면
             }
 
-            composable(MainNavigationItem.MLModel.route) {
+            composable(MainNavigationItem.GaitAnalysis.route) {
                 // 모델 관리 화면
+                GaitAnalysisScreen()
             }
 
             composable(MainNavigationItem.MyPage.route) {
