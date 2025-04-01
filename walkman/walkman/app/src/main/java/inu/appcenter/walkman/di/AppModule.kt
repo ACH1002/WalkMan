@@ -17,6 +17,9 @@ import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.domain.repository.SensorRepository
 import inu.appcenter.walkman.domain.repository.StorageRepository
 import inu.appcenter.walkman.domain.repository.UserRepository
+import inu.appcenter.walkman.local.database.WalkManDatabase
+import inu.appcenter.walkman.local.repository.GaitAnalysisRepository
+import inu.appcenter.walkman.local.repository.GaitAnalysisRepositoryImpl
 import javax.inject.Singleton
 
 @Module
@@ -79,5 +82,18 @@ object AppModule {
         @ApplicationContext context: Context
     ): AppUsageRepository {
         return AppUsageRepositoryImpl(context)
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideWalkManDatabase(@ApplicationContext context: Context): WalkManDatabase {
+        return WalkManDatabase.getDatabase(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGaitAnalysisRepository(database: WalkManDatabase): GaitAnalysisRepository {
+        return GaitAnalysisRepositoryImpl(database)
     }
 }

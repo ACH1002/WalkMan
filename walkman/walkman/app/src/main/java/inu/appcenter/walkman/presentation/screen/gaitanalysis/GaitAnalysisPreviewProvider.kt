@@ -5,9 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import inu.appcenter.walkman.domain.model.DailyGaitData
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
-import inu.appcenter.walkman.presentation.viewmodel.DailyGaitData
 import inu.appcenter.walkman.presentation.viewmodel.GaitAnalysisUiState
 import java.util.Calendar
 import java.util.Date

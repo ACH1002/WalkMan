@@ -113,4 +113,16 @@ dependencies {
     implementation ("com.google.android.exoplayer:exoplayer:2.19.1")
 
 
+    // Room 라이브러리 버전
+    val room_version = "2.6.1"
+
+
+    // Room 관련 의존성
+    implementation ("androidx.room:room-runtime:$room_version")
+    kapt ("androidx.room:room-compiler:$room_version")
+    implementation ("androidx.room:room-ktx:$room_version")
+
+    // GSON (JSON 변환용)
+    implementation ("com.google.code.gson:gson:2.9.0")
+
 }
