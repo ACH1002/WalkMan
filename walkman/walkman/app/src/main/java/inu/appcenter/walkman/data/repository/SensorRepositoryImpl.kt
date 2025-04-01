@@ -1,6 +1,9 @@
 package inu.appcenter.walkman.data.repository
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -11,9 +14,6 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
-import android.Manifest
-import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.RecordingSession
 import inu.appcenter.walkman.domain.model.SensorReading
@@ -24,7 +24,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton

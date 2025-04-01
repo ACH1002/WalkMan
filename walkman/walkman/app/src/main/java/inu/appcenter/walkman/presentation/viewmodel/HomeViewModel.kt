@@ -1,15 +1,9 @@
 package inu.appcenter.walkman.presentation.viewmodel
 
-import android.content.Context
-import android.content.Intent
-import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.NotificationRepository
-import inu.appcenter.walkman.service.WalkingDetectorService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

@@ -12,8 +12,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
-import android.widget.TextView
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import inu.appcenter.walkman.R
 import kotlinx.coroutines.CoroutineScope

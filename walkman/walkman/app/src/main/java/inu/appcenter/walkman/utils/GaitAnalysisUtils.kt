@@ -1,6 +1,12 @@
 package inu.appcenter.walkman.util
 
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.round
+import kotlin.math.sqrt
 
 /**
  * 센서 데이터로 부터 보행 분석을 위한 유틸리티 클래스
