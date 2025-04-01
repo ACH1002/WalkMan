@@ -6,6 +6,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import inu.appcenter.walkman.domain.model.DailyGaitData
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.components.GaitScoreCard
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.components.ImprovementItem
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.components.LegendItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.GaitAnalysisUiState

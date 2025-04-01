@@ -32,6 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.domain.model.DailyGaitData
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.components.GaitScoreCard
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.components.ImprovementItem
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.components.LegendItem
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.components.WeeklyGaitChart
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.utils.GaitAnalysisFunctions
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.utils.GaitAnalysisFunctions.getImprovementSuggestions
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.utils.GaitAnalysisFunctions.getRhythmDescription
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.utils.GaitAnalysisFunctions.getStabilityDescription
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.GaitAnalysisViewModel
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
@@ -357,7 +365,7 @@ fun GaitAnalysisScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         // 개선 제안 목록 (점수에 따라 다른 제안)
-                        val suggestions = getImprovementSuggestions(stabilityScore, rhythmScore)
+                        val suggestions =  getImprovementSuggestions(stabilityScore, rhythmScore)
                         suggestions.forEach { suggestion ->
                             ImprovementItem(
                                 title = suggestion.first,
@@ -438,325 +446,11 @@ fun GaitAnalysisScreen(
     }
 }
 
-@Composable
-fun GaitScoreCard(
-    title: String,
-    score: Int,
-    animatedScore: Float,
-    description: String,
-    iconContent: @Composable () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = WalkManColors.CardBackground
-        ),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                iconContent()
 
-                Spacer(modifier = Modifier.width(8.dp))
 
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = WalkManColors.TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
 
-                Spacer(modifier = Modifier.weight(1f))
 
-                Text(
-                    text = "${score}점",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = when {
-                        score >= 80 -> WalkManColors.Success
-                        score >= 60 -> Color(0xFFFFA500) // Orange
-                        else -> WalkManColors.Error
-                    },
-                    fontWeight = FontWeight.Bold
-                )
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // 선형 진행 표시줄
-            LinearProgressIndicator(
-                progress = { animatedScore },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp)),
-                color = when {
-                    score >= 80 -> WalkManColors.Success
-                    score >= 60 -> Color(0xFFFFA500) // Orange
-                    else -> WalkManColors.Error
-                },
-                trackColor = WalkManColors.Divider
-            )
 
-            Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = WalkManColors.TextSecondary
-            )
-        }
-    }
-}
-
-@Composable
-fun LegendItem(color: Color, text: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(12.dp)
-                .background(color, shape = CircleShape)
-        )
-
-        Spacer(modifier = Modifier.width(4.dp))
-
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = WalkManColors.TextSecondary
-        )
-    }
-}
-
-@Composable
-fun ImprovementItem(
-    title: String,
-    description: String
-) {
-    Column {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = WalkManColors.Primary,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodyMedium,
-            color = WalkManColors.TextPrimary
-        )
-    }
-}
-
-/**
- * 주간 보행 데이터 차트
- */
-@Composable
-fun WeeklyGaitChart(
-    weeklyData: List<DailyGaitData>,
-    modifier: Modifier = Modifier
-) {
-    if (weeklyData.isEmpty()) {
-        Box(
-            modifier = modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(WalkManColors.Primary.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "데이터가 없습니다",
-                style = MaterialTheme.typography.bodyMedium,
-                color = WalkManColors.TextSecondary
-            )
-        }
-        return
-    }
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(WalkManColors.Background)
-    ) {
-        // 그래프 그리기
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val canvasWidth = size.width
-            val canvasHeight = size.height
-            val padding = 24f
-
-            // 차트 영역
-            val chartWidth = canvasWidth - (padding * 2)
-            val chartHeight = canvasHeight - (padding * 2)
-
-            // x축 간격 (최대 7개 데이터)
-            val xStep = chartWidth / (weeklyData.size - 1).coerceAtLeast(1)
-
-            // y축 범위 (0-100)
-            val maxScore = 100f
-            val yScale = chartHeight / maxScore
-
-            // 그리드 라인 그리기
-            val gridLines = 5
-            val gridStep = chartHeight / gridLines
-            val gridColor = Color.LightGray.copy(alpha = 0.5f)
-
-            for (i in 0..gridLines) {
-                val y = padding + (gridStep * i)
-                drawLine(
-                    color = gridColor,
-                    start = Offset(padding, y),
-                    end = Offset(padding + chartWidth, y),
-                    strokeWidth = 1f
-                )
-            }
-
-            // 안정성 점수 선 그리기
-            if (weeklyData.size > 1) {
-                for (i in 0 until weeklyData.size - 1) {
-                    val startX = padding + (i * xStep)
-                    val startY = padding + chartHeight - (weeklyData[i].stabilityScore * yScale)
-                    val endX = padding + ((i + 1) * xStep)
-                    val endY = padding + chartHeight - (weeklyData[i + 1].stabilityScore * yScale)
-
-                    drawLine(
-                        color = WalkManColors.Primary,
-                        start = Offset(startX, startY),
-                        end = Offset(endX, endY),
-                        strokeWidth = 3f,
-                        cap = StrokeCap.Round
-                    )
-                }
-            }
-
-            // 리듬성 점수 선 그리기
-            if (weeklyData.size > 1) {
-                for (i in 0 until weeklyData.size - 1) {
-                    val startX = padding + (i * xStep)
-                    val startY = padding + chartHeight - (weeklyData[i].rhythmScore * yScale)
-                    val endX = padding + ((i + 1) * xStep)
-                    val endY = padding + chartHeight - (weeklyData[i + 1].rhythmScore * yScale)
-
-                    drawLine(
-                        color = WalkManColors.Success,
-                        start = Offset(startX, startY),
-                        end = Offset(endX, endY),
-                        strokeWidth = 3f,
-                        cap = StrokeCap.Round
-                    )
-                }
-            }
-
-            // 데이터 포인트 표시
-            weeklyData.forEachIndexed { index, data ->
-                val x = padding + (index * xStep)
-
-                // 안정성 점수 포인트
-                val stabilityY = padding + chartHeight - (data.stabilityScore * yScale)
-                drawCircle(
-                    color = WalkManColors.Primary,
-                    radius = 6f,
-                    center = Offset(x, stabilityY)
-                )
-
-                // 리듬성 점수 포인트
-                val rhythmY = padding + chartHeight - (data.rhythmScore * yScale)
-                drawCircle(
-                    color = WalkManColors.Success,
-                    radius = 6f,
-                    center = Offset(x, rhythmY)
-                )
-            }
-        }
-
-        // x축 레이블 (요일)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            weeklyData.forEach { data ->
-                val dateFormat = SimpleDateFormat("E", Locale.getDefault())
-                Text(
-                    text = dateFormat.format(data.date),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = WalkManColors.TextSecondary
-                )
-            }
-        }
-    }
-}
-
-/**
- * 안정성 점수에 따른 설명 텍스트
- */
-private fun getStabilityDescription(score: Int): String {
-    return when {
-        score >= 90 -> "보행 중 흔들림이 거의 없고 균형감이 매우 우수합니다."
-        score >= 80 -> "보행 중 흔들림이 적고 균형감이 우수합니다."
-        score >= 70 -> "전반적으로 안정적인 보행 패턴을 보입니다."
-        score >= 60 -> "약간의 불안정함이 있으나 양호한 수준입니다."
-        score >= 50 -> "보행 시 불안정함이 감지됩니다."
-        else -> "보행 안정성이 부족합니다. 개선이 필요합니다."
-    }
-}
-
-/**
- * 리듬성 점수에 따른 설명 텍스트
- */
-private fun getRhythmDescription(score: Int): String {
-    return when {
-        score >= 90 -> "매우 일정한 보폭과 속도로 걷는 능력이 탁월합니다."
-        score >= 80 -> "일정한 보폭과 속도로 걷는 능력이 우수합니다."
-        score >= 70 -> "보행 리듬이 대체로 일정합니다."
-        score >= 60 -> "약간의 불규칙함이 있으나 양호한 리듬감입니다."
-        score >= 50 -> "보행 리듬에 불규칙함이 감지됩니다."
-        else -> "보행 리듬이 불규칙합니다. 개선이 필요합니다."
-    }
-}
-
-/**
- * 점수에 따른 개선 제안 목록
- */
-private fun getImprovementSuggestions(stabilityScore: Int, rhythmScore: Int): List<Pair<String, String>> {
-    val suggestions = mutableListOf<Pair<String, String>>()
-
-    // 안정성 관련 제안
-    if (stabilityScore < 70) {
-        suggestions.add(
-            Pair(
-                "보행 안정성 향상",
-                "발 뒤꿈치부터 지면에 닿도록 하고, 상체를 똑바로 유지하세요. 균형 운동을 통해 안정성을 키울 수 있습니다."
-            )
-        )
-    }
-
-    // 리듬성 관련 제안
-    if (rhythmScore < 70) {
-        suggestions.add(
-            Pair(
-                "보행 리듬 개선",
-                "일정한 속도로 걷기 위해 메트로놈 앱을 사용해보세요. 규칙적인 걸음걸이를 연습하면 리듬감이 향상됩니다."
-            )
-        )
-    }
-
-    // 데이터 수집 관련 제안
-    suggestions.add(
-        Pair(
-            "더 정확한 분석을 위해",
-            "더 정확한 분석을 위해 주 3회 이상 VIDEO 모드에서 걷기 데이터를 수집하세요."
-        )
-    )
-
-    return suggestions
-}
