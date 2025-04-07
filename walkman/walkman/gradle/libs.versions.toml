@@ -26,7 +26,24 @@ coreSplashscreen = "1.0.1"
 cardview = "1.0.0"
 constraintlayout = "2.2.1"
 
+bom = "3.1.1"
+credentials = "1.5.0-rc01"
+googleid = "1.1.1"
+ktor = "3.0.3"
+
 [libraries]
+# Google
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "credentials" }
+androidx-credentials-play-services-auth = { module = "androidx.credentials:credentials-play-services-auth", version.ref = "credentials" }
+googleid = { module = "com.google.android.libraries.identity.googleid:googleid", version.ref = "googleid" }
+
+# Supabase
+auth-kt = { module = "io.github.jan-tennert.supabase:auth-kt" }
+supabase-bom = { module = "io.github.jan-tennert.supabase:bom", version.ref = "bom" }
+
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+
+
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }

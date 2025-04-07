@@ -1,3 +1,6 @@
+import java.util.Properties
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -22,6 +25,19 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        // local.properties에서 Supabase 정보 가져오기
+        val properties = Properties()
+        properties.load(project.rootProject.file("local.properties").inputStream())
+
+        // 올바른 형식으로 문자열 처리 (따옴표 이스케이프 수정)
+        val supabaseUrl = properties.getProperty("SUPABASE_URL") ?: ""
+        val supabaseKey = properties.getProperty("SUPABASE_KEY") ?: ""
+        val googleClientId = properties.getProperty("GOOGLE_CLIENT_ID") ?: ""
+
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"$supabaseKey\"")
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
+
     }
 
     buildTypes {
@@ -125,4 +141,15 @@ dependencies {
     // GSON (JSON 변환용)
     implementation ("com.google.code.gson:gson:2.9.0")
 
+    implementation(platform("io.github.jan-tennert.supabase:bom:2.4.0"))
+    implementation("io.github.jan-tennert.supabase:gotrue-kt")
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:storage-kt")
+    implementation("io.ktor:ktor-client-android:2.3.0")
+    implementation("io.ktor:ktor-utils:2.3.0")
+    implementation("io.ktor:ktor-client-core:2.3.0")
+
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
 }

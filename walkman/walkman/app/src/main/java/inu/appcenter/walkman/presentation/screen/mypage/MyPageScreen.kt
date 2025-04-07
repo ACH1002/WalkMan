@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -51,14 +52,18 @@ import androidx.navigation.NavController
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.screen.mypage.components.SettingItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors
+import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyPageScreen(
     navController: NavController,
-    userInfoViewModel: UserInfoViewModel = hiltViewModel()
+    userInfoViewModel: UserInfoViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val authState by authViewModel.authState.collectAsState()
+
     val uiState by userInfoViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
@@ -318,6 +323,27 @@ fun MyPageScreen(
                         subtitle = stringResource(id = R.string.export_data_desc),
                         onClick = { /* 데이터 내보내기 기능 */ }
                     )
+                }
+            }
+
+            if (authState.isLoggedIn) {
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = {
+                        authViewModel.signOut()
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = WalkManColors.Error
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                ) {
+                    Text("로그아웃")
                 }
             }
         }

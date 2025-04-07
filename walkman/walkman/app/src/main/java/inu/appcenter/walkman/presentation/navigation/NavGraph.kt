@@ -12,11 +12,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
+import inu.appcenter.walkman.presentation.screen.auth.LoginScreen
 import inu.appcenter.walkman.presentation.screen.onboarding.OnboardingScreen
 import inu.appcenter.walkman.presentation.screen.recording.RecordingScreen
 import inu.appcenter.walkman.presentation.screen.recordingmodes.RecordingModesScreen
 import inu.appcenter.walkman.presentation.screen.result.RecordingResultsScreen
 import inu.appcenter.walkman.presentation.screen.userinfo.UserInfoScreen
+import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
@@ -27,6 +29,7 @@ fun GaitxNavGraph(
     onOnboardingComplete: () -> Unit = {}
 ) {
     // RecordingViewModel은 여러 화면에서 공유
+    val authViewModel: AuthViewModel = hiltViewModel()
     val recordingViewModel: RecordingViewModel = hiltViewModel()
     val userInfoViewModel: UserInfoViewModel = hiltViewModel()
 
@@ -37,6 +40,26 @@ fun GaitxNavGraph(
         navController = navController,
         startDestination = startDestination
     ) {
+        // 로그인 화면 추가
+        composable("login") {
+            LoginScreen(
+                viewModel = authViewModel,
+                onLoginSuccess = {
+                    // 로그인 성공 시 온보딩 또는 메인 화면으로 이동
+                    navController.navigate("onboarding") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onContinueAsGuest = {
+                    // 게스트 모드로 계속 시 온보딩으로 이동
+                    navController.navigate("onboarding") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+
         // 온보딩 화면
         composable("onboarding") {
             OnboardingScreen(

@@ -7,12 +7,15 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import inu.appcenter.walkman.data.datasource.DriveServiceHelper
+import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.data.repository.AppUsageRepositoryImpl
+import inu.appcenter.walkman.data.repository.AuthRepositoryImpl
 import inu.appcenter.walkman.data.repository.NotificationRepositoryImpl
 import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
 import inu.appcenter.walkman.data.repository.StorageRepositoryImpl
 import inu.appcenter.walkman.data.repository.UserRepositoryImpl
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
+import inu.appcenter.walkman.domain.repository.AuthRepository
 import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.domain.repository.SensorRepository
 import inu.appcenter.walkman.domain.repository.StorageRepository
@@ -95,5 +98,17 @@ object AppModule {
     @Singleton
     fun provideGaitAnalysisRepository(database: WalkManDatabase): GaitAnalysisRepository {
         return GaitAnalysisRepositoryImpl(database)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSupabaseClient(@ApplicationContext context: Context): SupabaseClient {
+        return SupabaseClient(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(supabaseClient: SupabaseClient): AuthRepository {
+        return AuthRepositoryImpl(supabaseClient)
     }
 }
