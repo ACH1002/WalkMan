@@ -31,13 +31,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
+import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingScreen(
-    onGetStarted: () -> Unit
+    onGetStarted: () -> Unit,
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     Scaffold(
         topBar = {
@@ -189,7 +192,10 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
-                onClick = onGetStarted,
+                onClick = {
+                    authViewModel.setOnboardingCompleted()
+                    onGetStarted()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),

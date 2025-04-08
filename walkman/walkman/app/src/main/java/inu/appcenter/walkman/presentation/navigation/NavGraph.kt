@@ -13,6 +13,7 @@ import androidx.navigation.navArgument
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.screen.auth.LoginScreen
+import inu.appcenter.walkman.presentation.screen.auth.SignUpScreen
 import inu.appcenter.walkman.presentation.screen.onboarding.OnboardingScreen
 import inu.appcenter.walkman.presentation.screen.recording.RecordingScreen
 import inu.appcenter.walkman.presentation.screen.recordingmodes.RecordingModesScreen
@@ -24,7 +25,7 @@ import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
 @Composable
 fun GaitxNavGraph(
-    startDestination: String = "onboarding",
+    startDestination: String = "login",
     navController: NavHostController = rememberNavController(),
     onOnboardingComplete: () -> Unit = {}
 ) {
@@ -55,11 +56,27 @@ fun GaitxNavGraph(
                     navController.navigate("onboarding") {
                         popUpTo("login") { inclusive = true }
                     }
+                },
+                onNavigateToSignUp = {
+                    // 회원가입 화면으로 이동
+                    navController.navigate("signup")
                 }
             )
         }
 
-
+        composable("signup") {
+            SignUpScreen(
+                viewModel = authViewModel,
+                onSignUpSuccess = {
+                    // 회원가입 성공 후 로그인
+                    navController.popBackStack()
+                },
+                onNavigateBack = {
+                    // 로그인 화면으로 돌아가기
+                    navController.popBackStack()
+                }
+            )
+        }
         // 온보딩 화면
         composable("onboarding") {
             OnboardingScreen(

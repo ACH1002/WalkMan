@@ -324,26 +324,25 @@ fun MyPageScreen(
                         onClick = { /* 데이터 내보내기 기능 */ }
                     )
                 }
-            }
+                if (authState.isLoggedIn) {
+                    Spacer(modifier = Modifier.height(24.dp))
 
-            if (authState.isLoggedIn) {
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = {
-                        authViewModel.signOut()
-                        navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = WalkManColors.Error
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                ) {
-                    Text("로그아웃")
+                    Button(
+                        onClick = {
+                            authViewModel.signOut()
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = WalkManColors.Error
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        Text("로그아웃")
+                    }
                 }
             }
         }

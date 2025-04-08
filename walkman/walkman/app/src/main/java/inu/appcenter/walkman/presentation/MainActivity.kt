@@ -28,13 +28,16 @@ import inu.appcenter.walkman.BuildConfig
 import inu.appcenter.walkman.WalkManApplication
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
+import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 import inu.appcenter.walkman.presentation.viewmodel.MainViewModel
 import inu.appcenter.walkman.service.WalkingDetectorService
 import inu.appcenter.walkman.util.LanguageManager
+import inu.appcenter.walkman.utils.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private const val TAG = "MainActivity"
 private const val REQUEST_USAGE_STATS_PERMISSION = 1001
@@ -43,7 +46,11 @@ private const val REQUEST_USAGE_STATS_PERMISSION = 1001
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private val authViewModel: AuthViewModel by viewModels() // AuthViewModel 추가
     private lateinit var languageManager: LanguageManager
+
+    @Inject
+    lateinit var sessionManager: SessionManager
 
     // 권한 요청 런처
     private val permissionsLauncher = registerForActivityResult(
@@ -75,16 +82,15 @@ class MainActivity : ComponentActivity() {
         languageManager = LanguageManager(this)
 
         // 상태바 설정
-        // 상태바 설정 수정 부분
         WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge()
 
         // 시스템 바 색상 및 가시성 설정
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = true // 상태 바 아이콘 색상 (true: 어두운 색, false: 밝은 색)
-            isAppearanceLightNavigationBars = true // 내비게이션 바 아이콘 색상
-            hide(WindowInsetsCompat.Type.systemBars()) // 시스템 바 숨기기
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE // 스와이프 시 일시적으로 표시
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
         // 필요한 권한 확인 및 요청
@@ -93,30 +99,43 @@ class MainActivity : ComponentActivity() {
         // 앱 사용 통계 권한 확인
         checkAndRequestUsageStatsPermission()
 
-        // 디버그 모드일 경우 테스트 버튼 추가
-        if (BuildConfig.DEBUG) {
-            addDebugControls()
-        }
-
         // 메인 UI 설정
         setContent {
             val uiState by viewModel.uiState.collectAsState()
+            val authState by authViewModel.authState.collectAsState()
+
+            // 로그인 상태와 온보딩 완료 상태에 따라 시작 화면 결정
+            val startDestination = determineStartDestination(authState.isLoggedIn)
 
             WalkManTheme(
                 darkTheme = false,
                 hideNavigationBar = true
             ) {
                 GaitxNavGraph(
-                    startDestination = when {
-                        uiState.shouldShowOnboarding -> "onboarding"
-                        uiState.isUserProfileComplete -> "main_navigation"
-                        else -> "user_info"
-                    },
+                    startDestination = startDestination,
                     onOnboardingComplete = {
                         viewModel.markOnboardingShown()
+                        sessionManager.setOnboardingCompleted(true)
                     }
                 )
             }
+        }
+    }
+
+    // 시작 화면 결정 함수
+    private fun determineStartDestination(isLoggedIn: Boolean): String {
+        return if (isLoggedIn) {
+            // 이미 로그인된 상태
+            if (sessionManager.isOnboardingCompleted()) {
+                // 온보딩까지 완료했으면 메인 화면으로
+                "main_navigation"
+            } else {
+                // 온보딩은 아직 안 했으면 온보딩 화면으로
+                "onboarding"
+            }
+        } else {
+            // 로그인 안 된 상태면 로그인 화면으로
+            "login"
         }
     }
 

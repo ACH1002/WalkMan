@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -26,7 +27,8 @@ import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel(),
     onLoginSuccess: () -> Unit,
-    onContinueAsGuest: () -> Unit
+    onContinueAsGuest: () -> Unit,
+    onNavigateToSignUp: () -> Unit
 ) {
     val authState by viewModel.authState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -34,14 +36,28 @@ fun LoginScreen(
     var emailValue by remember { mutableStateOf("") }
     var passwordValue by remember { mutableStateOf("") }
 
-    // 로그인 상태 관찰
+    // 이미 로그인되어 있으면 바로 다음 화면으로 이동
+    LaunchedEffect(Unit) {
+        if (authState.isLoggedIn) {
+            // 온보딩 완료 상태에 따라 적절한 화면으로 이동
+            if (viewModel.isOnboardingCompleted()) {
+                // 여기서는 MainActivity의 determineStartDestination 로직과
+                // 일관성을 유지해야 합니다
+                onLoginSuccess()
+            } else {
+                onLoginSuccess() // 혹은 다른 처리
+            }
+        }
+    }
+
+    // 로그인 상태 변경 감지
     LaunchedEffect(authState.isLoggedIn) {
         if (authState.isLoggedIn) {
             onLoginSuccess()
         }
     }
 
-    // 오류 메시지 표시
+    // Error message display
     LaunchedEffect(authState.error) {
         authState.error?.let { error ->
             snackbarHostState.showSnackbar(error)
@@ -160,9 +176,10 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 로그인 버튼
                     Button(
-                        onClick = { viewModel.signInWithEmail(emailValue, passwordValue) },
+                        onClick = {
+                            viewModel.signInWithEmail(emailValue, passwordValue)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -172,9 +189,30 @@ fun LoginScreen(
                         )
                     ) {
                         Text(
-                            text = "Sign In",
+                            text = "로그인",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 회원가입 버튼 추가
+                    OutlinedButton(
+                        onClick = onNavigateToSignUp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            width = 1.dp,
+                            brush = SolidColor(WalkManColors.Primary)
+                        )
+                    ) {
+                        Text(
+                            text = "회원가입",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = WalkManColors.Primary
                         )
                     }
 

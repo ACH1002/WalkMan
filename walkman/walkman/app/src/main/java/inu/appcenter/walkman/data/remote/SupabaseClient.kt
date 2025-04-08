@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import inu.appcenter.walkman.BuildConfig
@@ -41,6 +43,8 @@ class SupabaseClient @Inject constructor(
                 supabaseKey = BuildConfig.SUPABASE_KEY
             ) {
                 install(Auth) {
+                    host = "login-callback"
+                    scheme = "inu.appcenter.walkman"
                 }
             }
         } catch (e: Exception) {
@@ -127,7 +131,6 @@ class SupabaseClient @Inject constructor(
         }
     }
 
-    // Google 로그인
     fun loginGoogleUser(): Flow<AuthResponse> = flow {
         val hashedNonce = createNonce()
 
@@ -135,8 +138,8 @@ class SupabaseClient @Inject constructor(
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setServerClientId(BuildConfig.GOOGLE_CLIENT_ID)
                 .setNonce(hashedNonce)
-                .setAutoSelectEnabled(false)
-                .setFilterByAuthorizedAccounts(false)
+                .setFilterByAuthorizedAccounts(false) // 모든 계정 표시
+                .setAutoSelectEnabled(false) // 자동 선택 비활성화
                 .build()
 
             val request = GetCredentialRequest.Builder()
@@ -145,29 +148,39 @@ class SupabaseClient @Inject constructor(
 
             val credentialManager = CredentialManager.create(context)
 
-            val result = withContext(Dispatchers.IO) {
-                credentialManager.getCredential(
-                    context = context,
-                    request = request
-                )
-            }
-
-            val googleIdTokenCredential = GoogleIdTokenCredential
-                .createFrom(result.credential.data)
-
-            val googleIdToken = googleIdTokenCredential.idToken
-
-            withContext(Dispatchers.IO) {
-                supabase.auth.signInWith(IDToken) {
-                    idToken = googleIdToken
-                    provider = Google
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    credentialManager.getCredential(
+                        context = context,
+                        request = request
+                    )
                 }
-            }
 
-            emit(AuthResponse.Success)
+                val googleIdTokenCredential = GoogleIdTokenCredential
+                    .createFrom(result.credential.data)
+
+                val googleIdToken = googleIdTokenCredential.idToken
+
+                withContext(Dispatchers.IO) {
+                    supabase.auth.signInWith(IDToken) {
+                        idToken = googleIdToken
+                        provider = Google
+                    }
+                }
+
+                emit(AuthResponse.Success)
+            } catch (e: NoCredentialException) {
+                // 사용자가 취소하거나 자격 증명을 선택하지 않은 경우
+                Log.d(TAG, "Google 로그인 취소됨: ${e.message}")
+                emit(AuthResponse.Error("로그인이 취소되었습니다"))
+            } catch (e: GetCredentialException) {
+                // 그 외 오류
+                Log.e(TAG, "Google 로그인 실패: ${e.message}")
+                emit(AuthResponse.Error("Google 로그인에 실패했습니다: ${e.message}"))
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Google login failed", e)
-            emit(AuthResponse.Error(e.localizedMessage))
+            Log.e(TAG, "Google 로그인 실패", e)
+            emit(AuthResponse.Error(e.localizedMessage ?: "알 수 없는 오류가 발생했습니다"))
         }
     }
 }

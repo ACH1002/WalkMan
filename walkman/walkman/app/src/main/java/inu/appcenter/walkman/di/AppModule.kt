@@ -23,6 +23,7 @@ import inu.appcenter.walkman.domain.repository.UserRepository
 import inu.appcenter.walkman.local.database.WalkManDatabase
 import inu.appcenter.walkman.local.repository.GaitAnalysisRepository
 import inu.appcenter.walkman.local.repository.GaitAnalysisRepositoryImpl
+import inu.appcenter.walkman.utils.SessionManager
 import javax.inject.Singleton
 
 @Module
@@ -108,7 +109,15 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideSessionManager(@ApplicationContext context: Context): SessionManager {
+        return SessionManager(context)
+    }
+
+    @Provides
+    @Singleton
     fun provideAuthRepository(supabaseClient: SupabaseClient): AuthRepository {
         return AuthRepositoryImpl(supabaseClient)
     }
+
+
 }
