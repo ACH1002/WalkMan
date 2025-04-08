@@ -1,5 +1,6 @@
 package inu.appcenter.walkman.presentation.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,6 +9,8 @@ import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.domain.model.AuthResponse
 import inu.appcenter.walkman.domain.repository.AuthRepository
 import inu.appcenter.walkman.utils.SessionManager
+import io.github.jan.supabase.exceptions.RestException
+import io.github.jan.supabase.gotrue.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,168 +30,132 @@ class AuthViewModel @Inject constructor(
     private val _authState = MutableStateFlow(AuthUiState())
     val authState: StateFlow<AuthUiState> = _authState.asStateFlow()
 
-    init {
-        // 로그인 상태 초기화
-        checkLoginStatus()
-
-        // 리포지토리 로그인 상태 관찰
+    fun isUserLoggedIn(
+    ) {
         viewModelScope.launch {
-            authRepository.isUserLoggedIn().collect { repoLoggedIn ->
-                Log.d("AuthViewModel", "Repository logged in status: $repoLoggedIn")
-                checkLoginStatus()
+            try {
+                _authState.update { it.copy(isLoading = true, error = null) }
+
+                val token = sessionManager.getToken()
+                Log.d("isUserLoggedIn", token.toString())
+                if(token.isNullOrEmpty()) {
+                    _authState.update { it.copy(isLoading = false, error = null, isLoggedIn = false) }
+
+                } else {
+                    supabaseClient.supabase.auth.retrieveUser(token)
+                    supabaseClient.supabase.auth.refreshCurrentSession()
+                    sessionManager.saveToken(supabaseClient.supabase.auth.currentAccessTokenOrNull())
+                    _authState.update { it.copy(isLoading = false, error = null, isLoggedIn = true) }
+
+                }
+            } catch (e: RestException) {
+                _authState.update { it.copy(isLoading = false, error = e.message, isLoggedIn = false) }
             }
         }
     }
-    private fun checkLoginStatus() {
-        // 세션 매니저의 로그인 상태
-        val sessionManagerLoggedIn = sessionManager.isLoggedIn()
-        Log.d("AuthViewModel", "SessionManager logged in status: $sessionManagerLoggedIn")
 
-        // Supabase 세션 확인
-        val supabaseSession = supabaseClient.getSessionStatus()
-        val supabaseLoggedIn = supabaseSession != null
-        Log.d("AuthViewModel", "Supabase session status: $supabaseLoggedIn")
 
-        // 최종 로그인 상태 결정
-        val isLoggedIn = sessionManagerLoggedIn && supabaseLoggedIn
 
-        // 상태 업데이트
-        _authState.update {
-            it.copy(
-                isLoggedIn = isLoggedIn,
-                userId = if (isLoggedIn) sessionManager.getUserId() else null
-            )
-        }
-
-        // 필요한 경우 세션 매니저 동기화
-        if (isLoggedIn != sessionManagerLoggedIn) {
-            sessionManager.saveLoginState(isLoggedIn)
-        }
-    }
-
-    // Google 로그인
     fun signInWithGoogle() {
         _authState.update { it.copy(isLoading = true, error = null) }
 
-        authRepository.signInWithGoogle()
-            .onEach { response ->
-                when (response) {
-                    is AuthResponse.Success -> {
-                        // 로그인 성공 시 세션 매니저에 상태 저장
-                        sessionManager.saveLoginState(true)
-
-                        // 사용자 ID도 저장 (있는 경우)
-                        authRepository.getCurrentUserId()?.let { userId ->
-                            sessionManager.saveUserId(userId)
+        viewModelScope.launch {
+            authRepository.signInWithGoogle()
+                .collect { response ->
+                    when (response) {
+                        is AuthResponse.Success -> {
+                            sessionManager.saveToken(supabaseClient.supabase.auth.currentAccessTokenOrNull())
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isLoggedIn = true
+                                )
+                            }
                         }
-
-                        _authState.update {
-                            it.copy(
-                                isLoading = false,
-                                isLoggedIn = true
-                            )
-                        }
-                    }
-                    is AuthResponse.Error -> {
-                        _authState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = response.message
-                            )
+                        is AuthResponse.Error -> {
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = response.message
+                                )
+                            }
                         }
                     }
                 }
-            }
-            .launchIn(viewModelScope)
+        }
     }
 
-    // AuthViewModel.kt의 signUpWithEmail 메서드 확인
     fun signUpWithEmail(email: String, password: String) {
         _authState.update { it.copy(isLoading = true, error = null) }
 
-        authRepository.signUpWithEmail(email, password)
-            .onEach { response ->
-                when (response) {
-                    is AuthResponse.Success -> {
-                        // 회원가입 성공 시 세션 매니저에 상태 저장
-                        sessionManager.saveLoginState(true)
-
-                        // 사용자 ID 저장 (있는 경우)
-                        authRepository.getCurrentUserId()?.let { userId ->
-                            sessionManager.saveUserId(userId)
+        viewModelScope.launch {
+            authRepository.signUpWithEmail(email, password)
+                .collect { response ->
+                    when (response) {
+                        is AuthResponse.Success -> {
+                            sessionManager.saveToken(supabaseClient.supabase.auth.currentAccessTokenOrNull())
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isLoggedIn = true
+                                )
+                            }
                         }
-
-                        _authState.update {
-                            it.copy(
-                                isLoading = false,
-                                isLoggedIn = true
-                            )
-                        }
-                    }
-                    is AuthResponse.Error -> {
-                        _authState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = response.message
-                            )
+                        is AuthResponse.Error -> {
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = response.message
+                                )
+                            }
                         }
                     }
                 }
-            }
-            .launchIn(viewModelScope)
+        }
     }
 
-    // 이메일 로그인
     fun signInWithEmail(email: String, password: String) {
         _authState.update { it.copy(isLoading = true, error = null) }
 
-        authRepository.signInWithEmail(email, password)
-            .onEach { response ->
-                when (response) {
-                    is AuthResponse.Success -> {
-                        // 로그인 성공 시 세션 매니저에 상태 저장
-                        sessionManager.saveLoginState(true)
-
-                        // 사용자 ID도 저장 (있는 경우)
-                        authRepository.getCurrentUserId()?.let { userId ->
-                            sessionManager.saveUserId(userId)
+        viewModelScope.launch {
+            authRepository.signInWithEmail(email, password)
+                .collect { response ->
+                    when (response) {
+                        is AuthResponse.Success -> {
+                            sessionManager.saveToken(supabaseClient.supabase.auth.currentAccessTokenOrNull())
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isLoggedIn = true
+                                )
+                            }
                         }
-
-                        _authState.update {
-                            it.copy(
-                                isLoading = false,
-                                isLoggedIn = true
-                            )
-                        }
-                    }
-                    is AuthResponse.Error -> {
-                        _authState.update {
-                            it.copy(
-                                isLoading = false,
-                                error = response.message
-                            )
+                        is AuthResponse.Error -> {
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = response.message
+                                )
+                            }
                         }
                     }
                 }
-            }
-            .launchIn(viewModelScope)
+        }
     }
 
-    // 로그아웃
     fun signOut() {
         viewModelScope.launch {
-            _authState.update { it.copy(isLoading = true) }
+            _authState.update { it.copy(isLoading = true, logoutCompleted = false) }
 
             authRepository.signOut()
                 .onSuccess {
-                    // 세션 매니저에서 세션 클리어
-                    sessionManager.clearSession()
-
+                    sessionManager.clearToken()
                     _authState.update {
                         it.copy(
                             isLoading = false,
                             isLoggedIn = false,
-                            userId = null
+                            userId = null,
+                            logoutCompleted = true // ✅ 로그아웃 완료
                         )
                     }
                 }
@@ -196,32 +163,39 @@ class AuthViewModel @Inject constructor(
                     _authState.update {
                         it.copy(
                             isLoading = false,
-                            error = exception.message
+                            error = exception.message,
+                            logoutCompleted = false
                         )
                     }
                 }
         }
     }
 
-    // 온보딩 완료 상태 체크
+
+
+
     fun isOnboardingCompleted(): Boolean {
         return sessionManager.isOnboardingCompleted()
     }
 
-    // 온보딩 완료 표시
     fun setOnboardingCompleted() {
         sessionManager.setOnboardingCompleted(true)
     }
 
-    // 오류 메시지 초기화
     fun clearError() {
         _authState.update { it.copy(error = null) }
+    }
+
+    fun resetLogoutCompleted() {
+        _authState.update { it.copy(logoutCompleted = false) }
     }
 }
 
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isLoggedIn: Boolean = false,
+    val logoutCompleted: Boolean = false,
+    val isUserInfoCompleted: Boolean = false,
     val userId: String? = null,
     val error: String? = null
 )

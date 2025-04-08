@@ -1,5 +1,6 @@
 package inu.appcenter.walkman.presentation.screen.mypage
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.screen.mypage.components.SettingItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors
@@ -60,12 +63,27 @@ import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 fun MyPageScreen(
     navController: NavController,
     userInfoViewModel: UserInfoViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    onLogOut : () -> Unit
 ) {
     val authState by authViewModel.authState.collectAsState()
 
     val uiState by userInfoViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(
+        key1 = true
+    ) {
+        authViewModel.isUserLoggedIn()
+    }
+
+    // 로그아웃 완료 후 이동
+    LaunchedEffect(authState.logoutCompleted) {
+        if (authState.logoutCompleted) {
+            onLogOut()
+            authViewModel.resetLogoutCompleted() // ✅ 플래그 리셋
+        }
+    }
 
     val genderText = when(uiState.gender) {
         stringResource(id = R.string.gender_male) -> stringResource(id = R.string.gender_male)
@@ -330,9 +348,6 @@ fun MyPageScreen(
                     Button(
                         onClick = {
                             authViewModel.signOut()
-                            navController.navigate("login") {
-                                popUpTo(0) { inclusive = true }
-                            }
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = WalkManColors.Error

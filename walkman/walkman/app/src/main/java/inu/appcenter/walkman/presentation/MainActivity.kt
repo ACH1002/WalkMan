@@ -26,6 +26,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.BuildConfig
 import inu.appcenter.walkman.WalkManApplication
+import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
@@ -51,6 +52,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var sessionManager: SessionManager
+
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
 
     // 권한 요청 런처
     private val permissionsLauncher = registerForActivityResult(
@@ -99,56 +103,22 @@ class MainActivity : ComponentActivity() {
         // 앱 사용 통계 권한 확인
         checkAndRequestUsageStatsPermission()
 
-        val supabaseSession = try {
-            (application as? WalkManApplication)?.let {
-                val supabaseClient = it.supabaseClient // Application 클래스에 supabaseClient 필드 추가 필요
-                supabaseClient?.getSessionStatus() != null
-            } ?: false
-        } catch (e: Exception) {
-            Log.e(TAG, "세션 확인 중 오류", e)
-            false
-        }
-
-        // 세션이 있으면 로그인 상태로 업데이트
-        if (supabaseSession) {
-            sessionManager.saveLoginState(true)
-            Log.d(TAG, "유효한 세션 발견, 로그인 상태로 설정")
-        }
+        authViewModel.isUserLoggedIn()
 
         // 메인 UI 설정
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            val startDestination = determineStartDestination(sessionManager.isLoggedIn())
-
             WalkManTheme(
                 darkTheme = false,
                 hideNavigationBar = true
             ) {
                 GaitxNavGraph(
-                    startDestination = startDestination,
                     onOnboardingComplete = {
                         viewModel.markOnboardingShown()
                         sessionManager.setOnboardingCompleted(true)
                     }
                 )
             }
-        }
-    }
-
-    // 시작 화면 결정 함수
-    private fun determineStartDestination(isLoggedIn: Boolean): String {
-        return if (isLoggedIn) {
-            // 이미 로그인된 상태
-            if (sessionManager.isOnboardingCompleted()) {
-                // 온보딩까지 완료했으면 메인 화면으로
-                "main_navigation"
-            } else {
-                // 온보딩은 아직 안 했으면 온보딩 화면으로
-                "onboarding"
-            }
-        } else {
-            // 로그인 안 된 상태면 로그인 화면으로
-            "login"
         }
     }
 

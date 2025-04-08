@@ -1,10 +1,12 @@
 // presentation/screen/auth/LoginScreen.kt
 package inu.appcenter.walkman.presentation.screen.auth
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,8 +14,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -21,6 +26,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,23 +43,19 @@ fun LoginScreen(
     var emailValue by remember { mutableStateOf("") }
     var passwordValue by remember { mutableStateOf("") }
 
-    // 이미 로그인되어 있으면 바로 다음 화면으로 이동
-    LaunchedEffect(Unit) {
-        if (authState.isLoggedIn) {
-            // 온보딩 완료 상태에 따라 적절한 화면으로 이동
-            if (viewModel.isOnboardingCompleted()) {
-                // 여기서는 MainActivity의 determineStartDestination 로직과
-                // 일관성을 유지해야 합니다
-                onLoginSuccess()
-            } else {
-                onLoginSuccess() // 혹은 다른 처리
-            }
-        }
+    var hasAttemptedLogin by remember { mutableStateOf(false) }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(
+        key1 = true
+    ) {
+        viewModel.isUserLoggedIn()
     }
 
-    // 로그인 상태 변경 감지
-    LaunchedEffect(authState.isLoggedIn) {
-        if (authState.isLoggedIn) {
+    LaunchedEffect(authState.isLoggedIn, hasAttemptedLogin) {
+        Log.d("LoginScreen", "isLoggedIn=${authState.isLoggedIn}, attempted=$hasAttemptedLogin")
+        if (authState.isLoggedIn && hasAttemptedLogin) {
             onLoginSuccess()
         }
     }
@@ -79,12 +82,12 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.35f)
+                    .fillMaxHeight()
                     .background(
                         brush = Brush.verticalGradient(
                             colors = listOf(
                                 WalkManColors.Primary,
-                                WalkManColors.Primary.copy(alpha = 0.7f),
+                                WalkManColors.Primary.copy(alpha = 0.1f),
                                 WalkManColors.Background
                             )
                         )
@@ -132,7 +135,10 @@ fun LoginScreen(
 
                     // 구글 로그인 버튼
                     OutlinedButton(
-                        onClick = { viewModel.signInWithGoogle() },
+                        onClick = {
+                            hasAttemptedLogin = true
+                            viewModel.signInWithGoogle()
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -159,7 +165,12 @@ fun LoginScreen(
                         onValueChange = { emailValue = it },
                         label = { Text("Email") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        maxLines = 1,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -171,14 +182,26 @@ fun LoginScreen(
                         label = { Text("Password") },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        maxLines = 1,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
                         onClick = {
-                            viewModel.signInWithEmail(emailValue, passwordValue)
+                            if (emailValue.isNotBlank() && passwordValue.isNotBlank()) {
+                                hasAttemptedLogin = true
+                                viewModel.signInWithEmail(emailValue, passwordValue)
+                            } else {
+                                coroutineScope.launch {
+                                    snackbarHostState.showSnackbar("이메일과 비밀번호를 입력해주세요.")
+                                }
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()

@@ -262,7 +262,16 @@ fun MainNavigationScreen(
             composable(MainNavigationItem.MyPage.route) {
                 // 마이페이지 화면
                 MyPageScreen(
-                    navController = navController
+                    navController = navController,
+                    onLogOut = {
+                        if (externalNavController != null) {
+                            // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
+                            externalNavController.navigate("login") {
+                                popUpTo(0) { inclusive = true } // 전체 백스택 클리어
+                            }
+                        } else {
+                        }
+                    }
                 )
             }
 

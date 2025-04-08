@@ -1,5 +1,6 @@
 package inu.appcenter.walkman.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
@@ -17,27 +18,25 @@ class SessionManager @Inject constructor(context: Context) {
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
     }
 
-    fun isLoggedIn(): Boolean {
-        val loggedIn = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
-        val userId = getUserId()
-
-        Log.d("SessionManager", "isLoggedIn: $loggedIn, UserId: $userId")
-
-        // 로그인 상태를 더 엄격하게 확인
-        return loggedIn && !userId.isNullOrBlank()
-    }
-
-    fun saveLoginState(isLoggedIn: Boolean) {
-        Log.d("SessionManager", "Saving login state: $isLoggedIn")
-        prefs.edit().putBoolean(KEY_IS_LOGGED_IN, isLoggedIn).apply()
-    }
-
     fun saveUserId(userId: String) {
         prefs.edit().putString(KEY_USER_ID, userId).apply()
     }
 
     fun getUserId(): String? {
         return prefs.getString(KEY_USER_ID, null)
+    }
+
+    fun saveToken(token: String?) {
+        Log.d("saveToken", token.toString())
+        prefs.edit().putString("accessToken", token).commit()
+    }
+
+    fun clearToken() {
+        prefs.edit().clear().apply()
+    }
+
+    fun getToken(): String? {
+        return prefs.getString("accessToken", null)
     }
 
     fun setOnboardingCompleted(completed: Boolean) {

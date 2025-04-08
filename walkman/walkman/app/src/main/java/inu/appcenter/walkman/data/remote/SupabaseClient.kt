@@ -36,7 +36,7 @@ class SupabaseClient @Inject constructor(
     }
 
     // 프로퍼티로 클라이언트 초기화를 지연시킴
-    private val supabase: SupabaseClient by lazy {
+    val supabase: SupabaseClient by lazy {
         try {
             createSupabaseClient(
                 supabaseUrl = BuildConfig.SUPABASE_URL,
@@ -51,35 +51,6 @@ class SupabaseClient @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Supabase client initialization failed", e)
             throw e
-        }
-    }
-
-    // 현재 세션 상태 확인
-    fun getSessionStatus(): SessionStatus? {
-        return try {
-            val session = supabase.auth.currentSessionOrNull()
-            Log.d(TAG, "Current session retrieved: ${session != null}")
-
-            // 세션이 존재하고, 유저 정보도 있는지 확인
-            if (session != null) {
-                // 추가적인 세션 유효성 검사
-                val user = session.user
-                Log.d(TAG, "Session user details: $user")
-
-                if (user != null) {
-                    // 세션과 사용자 정보가 모두 있는 경우
-                    SessionStatus.Authenticated(session)
-                } else {
-                    Log.d(TAG, "Session exists but user is null")
-                    null
-                }
-            } else {
-                Log.d(TAG, "No session found")
-                null
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error getting session status", e)
-            null
         }
     }
 
@@ -114,6 +85,7 @@ class SupabaseClient @Inject constructor(
     // 이메일로 로그인
     fun signInWithEmail(emailValue: String, passwordValue: String): Flow<AuthResponse> = flow {
         try {
+            Log.d("signInWithEmail", emailValue+passwordValue)
             withContext(Dispatchers.IO) {
                 supabase.auth.signInWith(Email) {
                     email = emailValue
@@ -122,9 +94,14 @@ class SupabaseClient @Inject constructor(
             }
             emit(AuthResponse.Success)
         } catch (e: Exception) {
+
             Log.e(TAG, "Error signing in with email", e)
             emit(AuthResponse.Error(e.localizedMessage))
         }
+    }
+
+    private fun saveToken(context: Context) {
+            val accessToken = supabase.auth.currentAccessTokenOrNull()
     }
 
     // 로그아웃

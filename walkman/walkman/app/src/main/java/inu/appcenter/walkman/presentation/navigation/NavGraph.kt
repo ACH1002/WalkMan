@@ -1,6 +1,7 @@
 package inu.appcenter.walkman.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -46,16 +47,18 @@ fun GaitxNavGraph(
             LoginScreen(
                 viewModel = authViewModel,
                 onLoginSuccess = {
-                    // 로그인 성공 시 온보딩 또는 메인 화면으로 이동
-                    navController.navigate("onboarding") {
-                        popUpTo("login") { inclusive = true }
+                    // 로그인 성공 시 유저 정보 입력 화면 또는 메인 화면으로 이동
+                    if (!userInfoState.isComplete) {
+                        navController.navigate("onboarding") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate("main_navigation") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 },
                 onContinueAsGuest = {
-                    // 게스트 모드로 계속 시 온보딩으로 이동
-                    navController.navigate("onboarding") {
-                        popUpTo("login") { inclusive = true }
-                    }
                 },
                 onNavigateToSignUp = {
                     // 회원가입 화면으로 이동
