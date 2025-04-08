@@ -115,8 +115,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(supabaseClient: SupabaseClient): AuthRepository {
-        return AuthRepositoryImpl(supabaseClient)
+    fun provideAuthRepository(supabaseClient: SupabaseClient, sessionManager: SessionManager): AuthRepository {
+        return AuthRepositoryImpl(supabaseClient, sessionManager =  sessionManager)
     }
 
 

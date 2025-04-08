@@ -3,6 +3,7 @@ package inu.appcenter.walkman
 import android.app.Application
 import android.content.Context
 import dagger.hilt.android.HiltAndroidApp
+import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.data.repository.NotificationRepositoryImpl
 import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.util.LanguageManager
@@ -16,12 +17,16 @@ class WalkManApplication : Application() {
     lateinit var notificationRepository: NotificationRepository
         private set
 
+    lateinit var supabaseClient: SupabaseClient
+        private set
+
     override fun onCreate() {
         super.onCreate()
         languageManager = LanguageManager(this)
 
         // NotificationRepository 초기화
         notificationRepository = NotificationRepositoryImpl(this)
+        supabaseClient = SupabaseClient(this)
     }
 
     override fun attachBaseContext(base: Context) {

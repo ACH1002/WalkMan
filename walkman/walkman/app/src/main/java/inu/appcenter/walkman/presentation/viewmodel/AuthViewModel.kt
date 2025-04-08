@@ -1,8 +1,10 @@
 package inu.appcenter.walkman.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.domain.model.AuthResponse
 import inu.appcenter.walkman.domain.repository.AuthRepository
 import inu.appcenter.walkman.utils.SessionManager
@@ -18,32 +20,52 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val sessionManager: SessionManager // SessionManager 주입
+    private val sessionManager: SessionManager,
+    private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
     private val _authState = MutableStateFlow(AuthUiState())
     val authState: StateFlow<AuthUiState> = _authState.asStateFlow()
 
     init {
-        // 앱 시작 시 세션 매니저에서 로그인 상태 불러오기
-        val isLoggedIn = sessionManager.isLoggedIn()
-        _authState.update { it.copy(isLoggedIn = isLoggedIn) }
+        // 로그인 상태 초기화
+        checkLoginStatus()
 
-        // 현재 사용자 ID 가져오기 (선택적)
-        val userId = sessionManager.getUserId()
-        _authState.update { it.copy(userId = userId) }
-
-        // 리포지토리 로그인 상태 관찰 (필요한 경우)
+        // 리포지토리 로그인 상태 관찰
         viewModelScope.launch {
             authRepository.isUserLoggedIn().collect { repoLoggedIn ->
-                // 세션 매니저와 싱크 유지
-                if (repoLoggedIn != sessionManager.isLoggedIn()) {
-                    sessionManager.saveLoginState(repoLoggedIn)
-                }
-                _authState.update { it.copy(isLoggedIn = repoLoggedIn) }
+                Log.d("AuthViewModel", "Repository logged in status: $repoLoggedIn")
+                checkLoginStatus()
             }
         }
     }
+    private fun checkLoginStatus() {
+        // 세션 매니저의 로그인 상태
+        val sessionManagerLoggedIn = sessionManager.isLoggedIn()
+        Log.d("AuthViewModel", "SessionManager logged in status: $sessionManagerLoggedIn")
+
+        // Supabase 세션 확인
+        val supabaseSession = supabaseClient.getSessionStatus()
+        val supabaseLoggedIn = supabaseSession != null
+        Log.d("AuthViewModel", "Supabase session status: $supabaseLoggedIn")
+
+        // 최종 로그인 상태 결정
+        val isLoggedIn = sessionManagerLoggedIn && supabaseLoggedIn
+
+        // 상태 업데이트
+        _authState.update {
+            it.copy(
+                isLoggedIn = isLoggedIn,
+                userId = if (isLoggedIn) sessionManager.getUserId() else null
+            )
+        }
+
+        // 필요한 경우 세션 매니저 동기화
+        if (isLoggedIn != sessionManagerLoggedIn) {
+            sessionManager.saveLoginState(isLoggedIn)
+        }
+    }
+
     // Google 로그인
     fun signInWithGoogle() {
         _authState.update { it.copy(isLoading = true, error = null) }

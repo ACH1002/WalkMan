@@ -99,13 +99,26 @@ class MainActivity : ComponentActivity() {
         // 앱 사용 통계 권한 확인
         checkAndRequestUsageStatsPermission()
 
+        val supabaseSession = try {
+            (application as? WalkManApplication)?.let {
+                val supabaseClient = it.supabaseClient // Application 클래스에 supabaseClient 필드 추가 필요
+                supabaseClient?.getSessionStatus() != null
+            } ?: false
+        } catch (e: Exception) {
+            Log.e(TAG, "세션 확인 중 오류", e)
+            false
+        }
+
+        // 세션이 있으면 로그인 상태로 업데이트
+        if (supabaseSession) {
+            sessionManager.saveLoginState(true)
+            Log.d(TAG, "유효한 세션 발견, 로그인 상태로 설정")
+        }
+
         // 메인 UI 설정
         setContent {
             val uiState by viewModel.uiState.collectAsState()
-            val authState by authViewModel.authState.collectAsState()
-
-            // 로그인 상태와 온보딩 완료 상태에 따라 시작 화면 결정
-            val startDestination = determineStartDestination(authState.isLoggedIn)
+            val startDestination = determineStartDestination(sessionManager.isLoggedIn())
 
             WalkManTheme(
                 darkTheme = false,

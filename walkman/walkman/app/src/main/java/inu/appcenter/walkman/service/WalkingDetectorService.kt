@@ -200,7 +200,7 @@ class WalkingDetectorService : Service(), SensorEventListener {
                         val now = System.currentTimeMillis()
 
                         // 현재 걷는 중인지 로그
-                        Log.d(TAG, "현재 걷는 중: $isWalking (마지막 걸음: ${now - lastStepTime}ms 전)")
+//                        Log.d(TAG, "현재 걷는 중: $isWalking (마지막 걸음: ${now - lastStepTime}ms 전)")
 
                         if (isWalking) {
                             // 3초마다 앱 확인
