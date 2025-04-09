@@ -12,9 +12,11 @@ class SessionManager @Inject constructor(context: Context) {
         context.getSharedPreferences("app_session", Context.MODE_PRIVATE)
 
     companion object {
+        private const val KEY_ACCESS_TOKEN = "accessToken"
         private const val KEY_IS_LOGGED_IN = "is_logged_in"
         private const val KEY_USER_ID = "user_id"
         private const val KEY_ONBOARDING_COMPLETED = "onboarding_completed"
+        private const val KEY_JUST_LOGGED_OUT = "just_logged_out"
     }
 
     fun saveUserId(userId: String) {
@@ -27,15 +29,23 @@ class SessionManager @Inject constructor(context: Context) {
 
     fun saveToken(token: String?) {
         Log.d("saveToken", token.toString())
-        prefs.edit().putString("accessToken", token).commit()
+        prefs.edit().putString(KEY_ACCESS_TOKEN, token).commit()
+        // 토큰 저장 시 로그아웃 상태 해제
+        setJustLoggedOut(false)
     }
 
     fun clearToken() {
-        prefs.edit().clear().apply()
+        Log.d("clearToken", "토큰 삭제 시작")
+        // 토큰만 삭제하고 다른 설정은 유지
+        val result = prefs.edit()
+            .remove(KEY_ACCESS_TOKEN)
+            .putBoolean(KEY_JUST_LOGGED_OUT, true)
+            .commit()
+        Log.d("clearToken", "토큰 삭제 완료: $result")
     }
 
     fun getToken(): String? {
-        return prefs.getString("accessToken", null)
+        return prefs.getString(KEY_ACCESS_TOKEN, null)
     }
 
     fun setOnboardingCompleted(completed: Boolean) {
@@ -44,6 +54,15 @@ class SessionManager @Inject constructor(context: Context) {
 
     fun isOnboardingCompleted(): Boolean {
         return prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
+    }
+
+    // 로그아웃 상태 관리 함수
+    fun setJustLoggedOut(loggedOut: Boolean) {
+        prefs.edit().putBoolean(KEY_JUST_LOGGED_OUT, loggedOut).commit()
+    }
+
+    fun wasJustLoggedOut(): Boolean {
+        return prefs.getBoolean(KEY_JUST_LOGGED_OUT, false)
     }
 
     fun clearSession() {

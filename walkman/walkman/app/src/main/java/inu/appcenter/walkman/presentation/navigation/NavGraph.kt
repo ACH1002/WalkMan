@@ -42,9 +42,18 @@ fun GaitxNavGraph(
         startDestination = startDestination
     ) {
         // 로그인 화면 추가
-        composable("login") {
+        composable(
+            route = "login?fromLogout={fromLogout}",
+            arguments = listOf(
+                navArgument("fromLogout") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val fromLogout = backStackEntry.arguments?.getBoolean("fromLogout") ?: false
             LoginScreen(
-                viewModel = authViewModel,
+                fromLogout = fromLogout,
                 onLoginSuccess = {
                     // 로그인 성공 시 유저 정보 입력 화면 또는 메인 화면으로 이동
                     if (!userInfoState.isComplete) {
@@ -57,6 +66,7 @@ fun GaitxNavGraph(
                         }
                     }
                 },
+                viewModel = authViewModel,
                 onContinueAsGuest = {
                 },
                 onNavigateToSignUp = {

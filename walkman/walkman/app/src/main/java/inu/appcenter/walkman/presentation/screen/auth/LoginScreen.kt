@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel(),
+    fromLogout: Boolean = false,
     onLoginSuccess: () -> Unit,
     onContinueAsGuest: () -> Unit,
     onNavigateToSignUp: () -> Unit
@@ -70,16 +71,31 @@ fun LoginScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(
-        key1 = true
-    ) {
+    var isFromLogout by remember { mutableStateOf(fromLogout || viewModel.wasJustLoggedOut()) }
+
+    LaunchedEffect(key1 = true) {
+        Log.d("LoginScreen", "초기화 - fromLogout: $fromLogout, wasJustLoggedOut: ${viewModel.wasJustLoggedOut()}")
+
+        // 로그인 상태 확인 (항상 호출)
         viewModel.isUserLoggedIn()
+
+        // 세션 매니저의 로그아웃 플래그 초기화
+        if (isFromLogout) {
+            viewModel.clearLogoutFlag()
+        }
     }
 
-    LaunchedEffect(authState.isLoggedIn, hasAttemptedLogin) {
-        Log.d("LoginScreen", "isLoggedIn=${authState.isLoggedIn}, attempted=$hasAttemptedLogin")
-        if (authState.isLoggedIn && hasAttemptedLogin) {
+    LaunchedEffect(authState.isLoggedIn) {
+        Log.d("LoginScreen", "상태 변경 - isLoggedIn: ${authState.isLoggedIn}, isFromLogout: $isFromLogout")
+
+        // 로그아웃 직후가 아닐 때만 자동 로그인 처리
+        if (authState.isLoggedIn && !isFromLogout) {
             onLoginSuccess()
+        }
+
+        // 로그인 상태가 확실히 false로 확인되면 로그아웃 플래그 초기화
+        if (!authState.isLoggedIn) {
+            isFromLogout = false
         }
     }
 

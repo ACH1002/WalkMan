@@ -1,5 +1,6 @@
 package inu.appcenter.walkman.presentation.screen.mypage
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +57,8 @@ import inu.appcenter.walkman.presentation.screen.mypage.components.SettingItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,18 +73,28 @@ fun MyPageScreen(
     val uiState by userInfoViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
 
+    val coroutineScope = rememberCoroutineScope()
+
     LaunchedEffect(
         key1 = true
     ) {
+        Log.d("isUserLoggedInInMyPageScreen", authState.toString())
         authViewModel.isUserLoggedIn()
     }
 
     // 로그아웃 완료 후 이동
     LaunchedEffect(authState.logoutCompleted) {
-        if (authState.logoutCompleted) {
+        if (authState.logoutCompleted && !authState.isLoggedIn) {
+            Log.d("MyPageScreen", "isLoggedIn : ${authState.isLoggedIn}, logoutCompleted : ${authState.logoutCompleted}")
+
+            // 로그아웃 상태를 네비게이션 인자로 전달
             onLogOut()
-            authViewModel.resetLogoutCompleted() // ✅ 플래그 리셋
+            authViewModel.resetLogoutCompleted()
         }
+    }
+
+    val onLogoutClick = {
+        authViewModel.signOut()
     }
 
     val genderText = when(uiState.gender) {
@@ -345,7 +359,7 @@ fun MyPageScreen(
 
                     Button(
                         onClick = {
-                            authViewModel.signOut()
+                            onLogoutClick()
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = WalkManColors.Error

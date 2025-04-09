@@ -266,8 +266,8 @@ fun MainNavigationScreen(
                     onLogOut = {
                         if (externalNavController != null) {
                             // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
-                            externalNavController.navigate("login") {
-                                popUpTo(0) { inclusive = true } // 전체 백스택 클리어
+                            externalNavController.navigate("login?fromLogout=true") {
+                                popUpTo("home") { inclusive = true }
                             }
                         } else {
                         }
