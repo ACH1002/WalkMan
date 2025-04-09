@@ -24,7 +24,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dagger.hilt.android.AndroidEntryPoint
-import inu.appcenter.walkman.BuildConfig
 import inu.appcenter.walkman.WalkManApplication
 import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph

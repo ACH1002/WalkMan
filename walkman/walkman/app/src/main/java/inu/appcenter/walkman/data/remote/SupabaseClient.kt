@@ -13,7 +13,6 @@ import inu.appcenter.walkman.domain.model.AuthResponse
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
-import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.Email
@@ -135,8 +134,8 @@ class SupabaseClient @Inject constructor(
             val googleIdOption = GetGoogleIdOption.Builder()
                 .setServerClientId(BuildConfig.GOOGLE_CLIENT_ID)
                 .setNonce(hashedNonce)
-                .setFilterByAuthorizedAccounts(false) // 모든 계정 표시
                 .setAutoSelectEnabled(false) // 자동 선택 비활성화
+                .setFilterByAuthorizedAccounts(false) // 모든 계정 표시
                 .build()
 
             val request = GetCredentialRequest.Builder()
@@ -146,23 +145,20 @@ class SupabaseClient @Inject constructor(
             val credentialManager = CredentialManager.create(context)
 
             try {
-                val result = withContext(Dispatchers.IO) {
+                val result =
                     credentialManager.getCredential(
                         context = context,
                         request = request
                     )
-                }
 
                 val googleIdTokenCredential = GoogleIdTokenCredential
                     .createFrom(result.credential.data)
 
                 val googleIdToken = googleIdTokenCredential.idToken
 
-                withContext(Dispatchers.IO) {
-                    supabase.auth.signInWith(IDToken) {
-                        idToken = googleIdToken
-                        provider = Google
-                    }
+                supabase.auth.signInWith(IDToken) {
+                    idToken = googleIdToken
+                    provider = Google
                 }
 
                 emit(AuthResponse.Success)

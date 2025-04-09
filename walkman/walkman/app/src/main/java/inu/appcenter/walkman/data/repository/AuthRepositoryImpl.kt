@@ -1,6 +1,5 @@
 package inu.appcenter.walkman.data.repository
 
-import android.util.Log
 import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.domain.model.AuthResponse
 import inu.appcenter.walkman.domain.repository.AuthRepository
@@ -43,8 +42,13 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun signInWithGoogle(): Flow<AuthResponse> = flow {
         try {
-            supabaseClient.loginGoogleUser()
-            emit(AuthResponse.Success)
+            supabaseClient.loginGoogleUser().collect{
+                if(it == AuthResponse.Success){
+                    emit(AuthResponse.Success)
+                } else {
+                    emit(AuthResponse.Error(it.toString()))
+                }
+            }
         } catch (e: Exception) {
             emit(AuthResponse.Error(e.localizedMessage))
         }

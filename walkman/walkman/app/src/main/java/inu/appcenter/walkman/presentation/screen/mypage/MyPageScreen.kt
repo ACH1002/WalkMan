@@ -1,6 +1,5 @@
 package inu.appcenter.walkman.presentation.screen.mypage
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.screen.mypage.components.SettingItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors

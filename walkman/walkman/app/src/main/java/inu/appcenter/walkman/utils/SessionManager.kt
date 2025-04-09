@@ -1,6 +1,5 @@
 package inu.appcenter.walkman.utils
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
