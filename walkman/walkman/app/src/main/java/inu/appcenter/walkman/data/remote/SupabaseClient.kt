@@ -104,14 +104,15 @@ class SupabaseClient @Inject constructor(
     }
 
     // 로그아웃
-    suspend fun signOut() {
+    suspend fun signOut() : Flow<AuthResponse> = flow {
         try {
             withContext(Dispatchers.IO) {
                 supabase.auth.signOut()
             }
+            emit(AuthResponse.Success)
         } catch (e: Exception) {
             Log.e(TAG, "Error signing out", e)
-            throw e
+            emit(AuthResponse.Error(e.localizedMessage))
         }
     }
 

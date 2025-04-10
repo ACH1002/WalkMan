@@ -66,7 +66,8 @@ fun MyPageScreen(
     navController: NavController,
     userInfoViewModel: UserInfoViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    onLogOut : () -> Unit
+    onLogOut : () -> Unit,
+    onClickProfileEdit : () -> Unit
 ) {
     val authState by authViewModel.authState.collectAsState()
 
@@ -231,7 +232,9 @@ fun MyPageScreen(
 
                     // 프로필 편집 버튼
                     OutlinedButton(
-                        onClick = { navController.navigate("user_info?isEdit=true") },
+                        onClick = {
+                            onClickProfileEdit()
+                        },
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = WalkManColors.Primary
                         ),

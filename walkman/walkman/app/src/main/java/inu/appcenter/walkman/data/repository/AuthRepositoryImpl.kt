@@ -5,6 +5,7 @@ import inu.appcenter.walkman.domain.model.AuthResponse
 import inu.appcenter.walkman.domain.repository.AuthRepository
 import inu.appcenter.walkman.utils.SessionManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,8 +19,13 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun signUpWithEmail(email: String, password: String): Flow<AuthResponse> = flow {
         try {
-            supabaseClient.signUpWithEmail(email, password)
-            emit(AuthResponse.Success)
+            supabaseClient.signUpWithEmail(email, password).collect{
+                if (it == AuthResponse.Success){
+                    emit(AuthResponse.Success)
+                } else {
+                    emit(AuthResponse.Error(it.toString()))
+                }
+            }
         } catch (e: Exception) {
             emit(AuthResponse.Error(e.localizedMessage))
         }
@@ -54,13 +60,18 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signOut(): Result<Unit> {
-        return try {
-            supabaseClient.signOut()
-            sessionManager.clearSession()
-            Result.success(Unit)
+    override suspend fun signOut(): Flow<AuthResponse> = flow {
+        try {
+            supabaseClient.signOut().collect{
+                if (it == AuthResponse.Success) {
+                    sessionManager.clearSession()
+                    emit(AuthResponse.Success)
+                } else {
+                    emit(AuthResponse.Error(it.toString()))
+                }
+            }
         } catch (e: Exception) {
-            Result.failure(e)
+            emit(AuthResponse.Error(e.localizedMessage))
         }
     }
 }

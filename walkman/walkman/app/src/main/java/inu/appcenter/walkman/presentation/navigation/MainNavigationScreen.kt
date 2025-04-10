@@ -271,6 +271,14 @@ fun MainNavigationScreen(
                             }
                         } else {
                         }
+                    },
+                    onClickProfileEdit = {
+                        if (externalNavController != null) {
+                            // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
+                            externalNavController.navigate("user_info?isEdit=true") {
+                            }
+                        } else {
+                        }
                     }
                 )
             }

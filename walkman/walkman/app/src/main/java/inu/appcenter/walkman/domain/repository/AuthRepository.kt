@@ -7,5 +7,5 @@ interface AuthRepository {
     fun signUpWithEmail(email: String, password: String): Flow<AuthResponse>
     fun signInWithEmail(email: String, password: String): Flow<AuthResponse>
     fun signInWithGoogle(): Flow<AuthResponse>
-    suspend fun signOut(): Result<Unit>
+    suspend fun signOut(): Flow<AuthResponse>
 }

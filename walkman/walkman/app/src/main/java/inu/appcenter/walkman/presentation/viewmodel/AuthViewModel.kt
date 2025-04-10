@@ -170,25 +170,29 @@ class AuthViewModel @Inject constructor(
             _authState.update { it.copy(isLoading = true, logoutCompleted = false) }
 
             authRepository.signOut()
-                .onSuccess {
-                    // 세션 매니저에서 토큰 삭제 및 로그아웃 상태 설정
-                    sessionManager.clearToken()
-                    _authState.update {
-                        it.copy(
-                            isLoading = false,
-                            isLoggedIn = false,
-                            userId = null,
-                            logoutCompleted = true
-                        )
-                    }
-                }
-                .onFailure { exception ->
-                    _authState.update {
-                        it.copy(
-                            isLoading = false,
-                            error = exception.message,
-                            logoutCompleted = false
-                        )
+                .collect { response ->
+                    when (response) {
+                        is AuthResponse.Success -> {
+                            // 세션 매니저에서 토큰 삭제 및 로그아웃 상태 설정
+                            sessionManager.clearToken()
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    isLoggedIn = false,
+                                    userId = null,
+                                    logoutCompleted = true
+                                )
+                            }
+                        }
+                        is AuthResponse.Error -> {
+                            _authState.update {
+                                it.copy(
+                                    isLoading = false,
+                                    error = it.error ?: response.message,
+                                    logoutCompleted = false
+                                )
+                            }
+                        }
                     }
                 }
         }
