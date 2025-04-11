@@ -56,6 +56,7 @@ import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.screen.mypage.components.SettingItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
+import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
@@ -64,15 +65,22 @@ import kotlinx.coroutines.withTimeoutOrNull
 @Composable
 fun MyPageScreen(
     navController: NavController,
-    userInfoViewModel: UserInfoViewModel = hiltViewModel(),
+    profileGaitViewModel: ProfileGaitViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
     onLogOut : () -> Unit,
     onClickProfileEdit : () -> Unit
 ) {
     val authState by authViewModel.authState.collectAsState()
 
-    val uiState by userInfoViewModel.uiState.collectAsState()
+    val profileState by profileGaitViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
+    val selectedProfile = profileState.selectedProfile
+
+    val name = selectedProfile?.name ?: ""
+    val gender = selectedProfile?.gender ?: ""
+    val height = selectedProfile?.height ?: ""
+    val weight = selectedProfile?.weight ?: ""
+    val mbti = selectedProfile?.mbti ?: ""
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -98,14 +106,14 @@ fun MyPageScreen(
         authViewModel.signOut()
     }
 
-    val genderText = when(uiState.gender) {
+    val genderText = when(gender) {
         stringResource(id = R.string.gender_male) -> stringResource(id = R.string.gender_male)
         stringResource(id = R.string.gender_female) -> stringResource(id = R.string.gender_female)
         "남성" -> stringResource(id = R.string.gender_male)
         "여성" -> stringResource(id = R.string.gender_female)
         "Male" -> stringResource(id = R.string.gender_male)
         "Female" -> stringResource(id = R.string.gender_female)
-        else -> uiState.gender
+        else -> gender
     }
 
     Scaffold(
@@ -166,7 +174,7 @@ fun MyPageScreen(
 
                     // 사용자 이름
                     Text(
-                        text = uiState.name.ifEmpty { stringResource(id = R.string.default_user) },
+                        text = name.ifEmpty { stringResource(id = R.string.default_user) },
                         style = MaterialTheme.typography.titleLarge,
                         color = WalkManColors.TextPrimary,
                         fontWeight = FontWeight.Bold
@@ -179,7 +187,7 @@ fun MyPageScreen(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (uiState.gender.isNotEmpty()) {
+                        if (gender.isNotEmpty()) {
                             Text(
                                 text = genderText,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -193,14 +201,14 @@ fun MyPageScreen(
                             )
                         }
 
-                        if (uiState.height.isNotEmpty()) {
+                        if (height.isNotEmpty()) {
                             Text(
-                                text = stringResource(id = R.string.profile_height, uiState.height),
+                                text = stringResource(id = R.string.profile_height, height),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = WalkManColors.TextSecondary
                             )
 
-                            if (uiState.weight.isNotEmpty()) {
+                            if (weight.isNotEmpty()) {
                                 Text(
                                     text = " | ",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -209,20 +217,20 @@ fun MyPageScreen(
                             }
                         }
 
-                        if (uiState.weight.isNotEmpty()) {
+                        if (weight.isNotEmpty()) {
                             Text(
-                                text = stringResource(id = R.string.profile_weight, uiState.weight),
+                                text = stringResource(id = R.string.profile_weight, weight),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = WalkManColors.TextSecondary
                             )
                         }
                     }
 
-                    if (uiState.mbti.isNotEmpty()) {
+                    if (mbti.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = stringResource(id = R.string.profile_mbti, uiState.mbti),
+                            text = stringResource(id = R.string.profile_mbti, mbti),
                             style = MaterialTheme.typography.bodyMedium,
                             color = WalkManColors.TextSecondary
                         )
@@ -231,28 +239,28 @@ fun MyPageScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // 프로필 편집 버튼
-                    OutlinedButton(
-                        onClick = {
-                            onClickProfileEdit()
-                        },
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = WalkManColors.Primary
-                        ),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            brush = SolidColor(WalkManColors.Primary)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = stringResource(id = R.string.edit_profile),
-                            modifier = Modifier.size(16.dp)
-                        )
-
-                        Spacer(modifier = Modifier.width(4.dp))
-
-                        Text(text = stringResource(id = R.string.edit_profile))
-                    }
+//                    OutlinedButton(
+//                        onClick = {
+//                            onClickProfileEdit()
+//                        },
+//                        colors = ButtonDefaults.outlinedButtonColors(
+//                            contentColor = WalkManColors.Primary
+//                        ),
+//                        border = ButtonDefaults.outlinedButtonBorder.copy(
+//                            brush = SolidColor(WalkManColors.Primary)
+//                        ),
+//                        shape = RoundedCornerShape(8.dp)
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Default.Edit,
+//                            contentDescription = stringResource(id = R.string.edit_profile),
+//                            modifier = Modifier.size(16.dp)
+//                        )
+//
+//                        Spacer(modifier = Modifier.width(4.dp))
+//
+//                        Text(text = stringResource(id = R.string.edit_profile))
+//                    }
                 }
             }
 

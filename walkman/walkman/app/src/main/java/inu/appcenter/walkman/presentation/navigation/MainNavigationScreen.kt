@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,9 +50,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.data.model.UserProfile
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
-import inu.appcenter.walkman.presentation.screen.gaitanalysis.GaitAnalysisScreen
+import inu.appcenter.walkman.presentation.screen.gaitanalysis.UpdatedGaitAnalysisScreen
 import inu.appcenter.walkman.presentation.screen.home.HomeScreen
 import inu.appcenter.walkman.presentation.screen.mypage.MyPageScreen
 import inu.appcenter.walkman.presentation.screen.mypage.settings.language.LanguageSettingsScreen
@@ -61,6 +63,7 @@ import inu.appcenter.walkman.presentation.screen.recordingmodes.RecordingModesSc
 import inu.appcenter.walkman.presentation.screen.result.RecordingResultsScreen
 import inu.appcenter.walkman.presentation.screen.userinfo.UserInfoScreen
 import inu.appcenter.walkman.presentation.theme.WalkManColors
+import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
@@ -106,7 +109,8 @@ fun MainNavigationScreen(
 ) {
     val navController = rememberNavController()
     val recordingViewModel: RecordingViewModel = hiltViewModel()
-    val userInfoViewModel: UserInfoViewModel = hiltViewModel()
+//    val userInfoViewModel: UserInfoViewModel = hiltViewModel()
+    val profileGaitViewModel : ProfileGaitViewModel = hiltViewModel()
 
     val navigationItems = listOf(
         MainNavigationItem.Home,
@@ -125,15 +129,19 @@ fun MainNavigationScreen(
     val isRecordingRelatedScreen = remember(currentRoute) {
         currentRoute?.startsWith("recording") ?: false
     }
-
     // 사용자 정보 가져오기
-    val userInfo = remember {
-        UserInfo(
-            name = userInfoViewModel.uiState.value.name,
-            gender = userInfoViewModel.uiState.value.gender,
-            height = userInfoViewModel.uiState.value.height,
-            weight = userInfoViewModel.uiState.value.weight,
-            mbti = userInfoViewModel.uiState.value.mbti
+    val userProfile = remember {
+        UserProfile(
+            id = profileGaitViewModel.uiState.value.selectedProfile?.id ?: "",
+            accountId = profileGaitViewModel.uiState.value.selectedProfile?.accountId ?: "",
+            name = profileGaitViewModel.uiState.value.selectedProfile?.name ?: "",
+            gender = profileGaitViewModel.uiState.value.selectedProfile?.gender ?: "",
+            height = profileGaitViewModel.uiState.value.selectedProfile?.height ?: "",
+            weight = profileGaitViewModel.uiState.value.selectedProfile?.weight ?: "",
+            mbti = profileGaitViewModel.uiState.value.selectedProfile?.mbti ?:"",
+            createdAt = profileGaitViewModel.uiState.value.selectedProfile?.createdAt,
+            updatedAt = profileGaitViewModel.uiState.value.selectedProfile?.updatedAt,
+
         )
     }
 
@@ -255,8 +263,15 @@ fun MainNavigationScreen(
             }
 
             composable(MainNavigationItem.GaitAnalysis.route) {
-                // 모델 관리 화면
-                GaitAnalysisScreen()
+                UpdatedGaitAnalysisScreen(
+                    onNavigateToProfiles = {
+                        if (externalNavController != null) {
+                            // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
+                            externalNavController.navigate("profile_management")
+                        } else {
+                        }
+                    }
+                )
             }
 
             composable(MainNavigationItem.MyPage.route) {
@@ -301,17 +316,17 @@ fun MainNavigationScreen(
                     onNavigateToResults = {
                         navController.navigate("recording_results")
                     },
-                    onNavigateToUserInfo = {
+                    onNavigateToUserInfo = {profile ->
                         // 수정된 부분: 외부 네비게이션 컨트롤러가 있다면 그것을 사용
                         if (externalNavController != null) {
-                            // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
-                            externalNavController.navigate("user_info?isEdit=true")
+                                // 편집할 프로필 ID 전달
+                                externalNavController.navigate("profile_edit/${profile.id}")
+
                         } else {
-                            // 대체 경로: 내부에서 처리할 수 있는 화면으로 이동
-                            navController.navigate("local_user_info_edit")
+
                         }
+
                     },
-                    userInfo = userInfo,
                     onBackPressed = {
                         // 측정 모드 화면에서 뒤로가기 시 홈 화면으로 이동
                         navController.popBackStack(MainNavigationItem.Home.route, false)
@@ -352,7 +367,7 @@ fun MainNavigationScreen(
             // MainNavigation 내에서 간단한 사용자 정보 편집 화면 추가
             composable("local_user_info_edit") {
                 UserInfoScreen(
-                    viewModel = userInfoViewModel,
+                    profileViewModel = profileGaitViewModel,
                     isEdit = true,
                     onNavigateNext = {
                         navController.popBackStack()

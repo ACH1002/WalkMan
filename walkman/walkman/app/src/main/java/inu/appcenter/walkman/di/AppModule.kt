@@ -14,6 +14,10 @@ import inu.appcenter.walkman.data.repository.NotificationRepositoryImpl
 import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
 import inu.appcenter.walkman.data.repository.StorageRepositoryImpl
 import inu.appcenter.walkman.data.repository.UserRepositoryImpl
+import inu.appcenter.walkman.data.repository.gaitanalysis.SupabaseGaitAnalysisRepository
+import inu.appcenter.walkman.data.repository.gaitanalysis.SupabaseGaitAnalysisRepositoryImpl
+import inu.appcenter.walkman.data.repository.user.UserProfileRepository
+import inu.appcenter.walkman.data.repository.user.UserProfileRepositoryImpl
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.AuthRepository
 import inu.appcenter.walkman.domain.repository.NotificationRepository
@@ -120,4 +124,19 @@ object AppModule {
     }
 
 
+    @Provides
+    @Singleton
+    fun provideUserProfileRepository(
+        supabaseClient: SupabaseClient
+    ): UserProfileRepository {
+        return UserProfileRepositoryImpl(supabaseClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSupabaseGaitAnalysisRepository(
+        supabaseClient: SupabaseClient
+    ): SupabaseGaitAnalysisRepository {
+        return SupabaseGaitAnalysisRepositoryImpl(supabaseClient)
+    }
 }

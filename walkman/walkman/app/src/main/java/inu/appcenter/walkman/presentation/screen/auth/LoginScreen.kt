@@ -51,11 +51,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
+import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel(),
+    profileGaitViewModel: ProfileGaitViewModel = hiltViewModel(),
     fromLogout: Boolean = false,
     onLoginSuccess: () -> Unit,
     onContinueAsGuest: () -> Unit,
@@ -90,6 +92,7 @@ fun LoginScreen(
 
         // 로그아웃 직후가 아닐 때만 자동 로그인 처리
         if (authState.isLoggedIn && !isFromLogout) {
+            profileGaitViewModel.loadUserProfiles()
             onLoginSuccess()
         }
 

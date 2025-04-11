@@ -36,25 +36,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.data.model.UserProfile
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.ModeCard
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.UserInfoCard
 import inu.appcenter.walkman.presentation.theme.WalkManColors
+import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecordingModesScreen(
     viewModel: RecordingViewModel,
+    profileGaitViewModel: ProfileGaitViewModel = hiltViewModel(),
     onNavigateToRecording: (RecordingMode) -> Unit,
     onNavigateToResults: () -> Unit,
-    onNavigateToUserInfo: () -> Unit,
+    onNavigateToUserInfo: (UserProfile) -> Unit,
     onBackPressed: () -> Unit = {},
-    userInfo: UserInfo? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val profileUiState by profileGaitViewModel.uiState.collectAsState()
 
     // 모든 측정이 완료되면 결과 페이지로 자동 이동
     LaunchedEffect(uiState.allModesCompleted) {
@@ -103,33 +108,33 @@ fun RecordingModesScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 온보딩 진행 상태 표시
-            Row(
-                modifier = Modifier.padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(Color.LightGray, shape = RoundedCornerShape(6.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(Color.LightGray, shape = RoundedCornerShape(6.dp))
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .background(WalkManColors.Primary, shape = RoundedCornerShape(6.dp))
-                )
-            }
+//            Row(
+//                modifier = Modifier.padding(vertical = 16.dp),
+//                horizontalArrangement = Arrangement.Center
+//            ) {
+//                Box(
+//                    modifier = Modifier
+//                        .size(12.dp)
+//                        .background(Color.LightGray, shape = RoundedCornerShape(6.dp))
+//                )
+//                Spacer(modifier = Modifier.width(8.dp))
+//                Box(
+//                    modifier = Modifier
+//                        .size(12.dp)
+//                        .background(Color.LightGray, shape = RoundedCornerShape(6.dp))
+//                )
+//                Spacer(modifier = Modifier.width(8.dp))
+//                Box(
+//                    modifier = Modifier
+//                        .size(12.dp)
+//                        .background(WalkManColors.Primary, shape = RoundedCornerShape(6.dp))
+//                )
+//            }
 
             // 사용자 정보 카드
             UserInfoCard(
-                userInfo = userInfo,
-                onEditClick = onNavigateToUserInfo
+                userProfile = profileUiState.selectedProfile,
+                onEditClick = { profileUiState.selectedProfile?.let { onNavigateToUserInfo(it) } }
             )
 
             Spacer(modifier = Modifier.height(16.dp))

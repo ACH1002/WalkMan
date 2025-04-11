@@ -25,23 +25,24 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.data.model.UserProfile
 import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 
 @Composable
 fun UserInfoCard(
-    userInfo: UserInfo?,
+    userProfile: UserProfile?,
     onEditClick: () -> Unit
 ) {
     // 현재 언어에 맞게 성별 텍스트 변환
-    val genderText = when(userInfo?.gender) {
+    val genderText = when(userProfile?.gender) {
         stringResource(id = R.string.gender_male) -> stringResource(id = R.string.gender_male)
         stringResource(id = R.string.gender_female) -> stringResource(id = R.string.gender_female)
         "남성" -> stringResource(id = R.string.gender_male)
         "여성" -> stringResource(id = R.string.gender_female)
         "Male" -> stringResource(id = R.string.gender_male)
         "Female" -> stringResource(id = R.string.gender_female)
-        else -> userInfo?.gender ?: ""
+        else -> userProfile?.gender ?: ""
     }
 
     Card(
@@ -73,7 +74,7 @@ fun UserInfoCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = userInfo?.name ?: stringResource(id = R.string.default_user),
+                    text = userProfile?.name ?: stringResource(id = R.string.default_user),
                     style = MaterialTheme.typography.titleMedium,
                     color = WalkManColors.TextPrimary,
                     fontWeight = FontWeight.Bold
@@ -83,7 +84,7 @@ fun UserInfoCard(
 
                 // Wrap을 구현하는 FlowRow 대신 텍스트를 개별적으로 나열
                 // 첫 줄: 성별
-                if (!userInfo?.gender.isNullOrBlank()) {
+                if (!userProfile?.gender.isNullOrBlank()) {
                     Text(
                         text = genderText,
                         style = MaterialTheme.typography.bodyMedium,
@@ -95,18 +96,18 @@ fun UserInfoCard(
                 Row(
                     modifier = Modifier.padding(top = 2.dp)
                 ) {
-                    if (!userInfo?.height.isNullOrBlank()) {
+                    if (!userProfile?.height.isNullOrBlank()) {
                         Text(
-                            text = stringResource(id = R.string.profile_height, userInfo?.height ?: ""),
+                            text = stringResource(id = R.string.profile_height, userProfile?.height ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
                             color = WalkManColors.TextSecondary
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
 
-                    if (!userInfo?.weight.isNullOrBlank()) {
+                    if (!userProfile?.weight.isNullOrBlank()) {
                         Text(
-                            text = stringResource(id = R.string.profile_weight, userInfo?.weight ?: ""),
+                            text = stringResource(id = R.string.profile_weight, userProfile?.weight ?: ""),
                             style = MaterialTheme.typography.bodyMedium,
                             color = WalkManColors.TextSecondary
                         )

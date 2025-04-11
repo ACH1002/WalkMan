@@ -57,18 +57,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
+import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
 import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserInfoScreen(
-    viewModel: UserInfoViewModel,
+    profileViewModel: ProfileGaitViewModel = hiltViewModel(),
     onNavigateNext: () -> Unit,
     isEdit: Boolean = false
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by profileViewModel.uiState.collectAsState()
     var mbtiDropdownExpanded by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -170,7 +172,7 @@ fun UserInfoScreen(
             // 이름 입력
             OutlinedTextField(
                 value = uiState.name,
-                onValueChange = { viewModel.updateName(it) },
+                onValueChange = { profileViewModel.updateName(it) },
                 label = { Text(stringResource(id = R.string.label_name), color = WalkManColors.TextSecondary) },
                 placeholder = { Text(stringResource(id = R.string.placeholder_name), color = WalkManColors.TextSecondary) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -209,7 +211,7 @@ fun UserInfoScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Button(
-                    onClick = { viewModel.updateGender(maleLabelText) },
+                    onClick = { profileViewModel.updateGender(maleLabelText) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (uiState.gender == maleLabelText) WalkManColors.Primary else Color.LightGray
@@ -223,7 +225,7 @@ fun UserInfoScreen(
                 }
 
                 Button(
-                    onClick = { viewModel.updateGender(femaleLabelText) },
+                    onClick = { profileViewModel.updateGender(femaleLabelText) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (uiState.gender == femaleLabelText) WalkManColors.Primary else Color.LightGray
@@ -286,7 +288,7 @@ fun UserInfoScreen(
                         DropdownMenuItem(
                             text = { Text(mbtiType) },
                             onClick = {
-                                viewModel.updateMbti(mbtiType)
+                                profileViewModel.updateMbti(mbtiType)
                                 mbtiDropdownExpanded = false
                             }
                         )
@@ -297,7 +299,7 @@ fun UserInfoScreen(
             // 키 입력
             OutlinedTextField(
                 value = uiState.height,
-                onValueChange = { viewModel.updateHeight(it) },
+                onValueChange = { profileViewModel.updateHeight(it) },
                 label = { Text(stringResource(id = R.string.label_height), color = WalkManColors.TextSecondary) },
                 placeholder = { Text(stringResource(id = R.string.placeholder_height), color = WalkManColors.TextSecondary) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -323,7 +325,7 @@ fun UserInfoScreen(
             // 체중 입력
             OutlinedTextField(
                 value = uiState.weight,
-                onValueChange = { viewModel.updateWeight(it) },
+                onValueChange = { profileViewModel.updateWeight(it) },
                 label = { Text(stringResource(id = R.string.label_weight), color = WalkManColors.TextSecondary) },
                 placeholder = { Text(stringResource(id = R.string.placeholder_weight), color = WalkManColors.TextSecondary) },
                 colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -354,7 +356,13 @@ fun UserInfoScreen(
 
             Button(
                 onClick = {
-                    viewModel.saveUserInfo()
+                    profileViewModel.createUserProfile(
+                        name = uiState.name,
+                        gender = uiState.gender,
+                        height = uiState.height,
+                        weight = uiState.weight,
+                        mbti = uiState.mbti
+                    )
                     onNavigateNext()
                 },
                 modifier = Modifier

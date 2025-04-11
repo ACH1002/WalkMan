@@ -17,6 +17,8 @@ import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.Google
 import io.github.jan.supabase.gotrue.providers.builtin.Email
 import io.github.jan.supabase.gotrue.providers.builtin.IDToken
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.storage.Storage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -41,11 +43,13 @@ class SupabaseClient @Inject constructor(
                 supabaseUrl = BuildConfig.SUPABASE_URL,
                 supabaseKey = BuildConfig.SUPABASE_KEY
             ) {
+                install(Postgrest)
                 install(Auth) {
                     host = "login-callback"
                     scheme = "inu.appcenter.walkman"
 
                 }
+                install(Storage)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Supabase client initialization failed", e)
