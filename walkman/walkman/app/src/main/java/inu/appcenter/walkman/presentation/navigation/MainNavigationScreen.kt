@@ -50,9 +50,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import inu.appcenter.walkman.R
-import inu.appcenter.walkman.data.model.UserProfile
 import inu.appcenter.walkman.domain.model.RecordingMode
-import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.screen.gaitanalysis.UpdatedGaitAnalysisScreen
 import inu.appcenter.walkman.presentation.screen.home.HomeScreen
 import inu.appcenter.walkman.presentation.screen.mypage.MyPageScreen
@@ -61,42 +59,41 @@ import inu.appcenter.walkman.presentation.screen.mypage.settings.notification.No
 import inu.appcenter.walkman.presentation.screen.recording.RecordingScreen
 import inu.appcenter.walkman.presentation.screen.recordingmodes.RecordingModesScreen
 import inu.appcenter.walkman.presentation.screen.result.RecordingResultsScreen
-import inu.appcenter.walkman.presentation.screen.userinfo.UserInfoScreen
 import inu.appcenter.walkman.presentation.theme.WalkManColors
+import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
-import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
 sealed class MainNavigationItem(
     val route: String,
-    val titleResId: Int, // 리소스 ID로 변경
+    val titleResId: Int,
     val selectedIcon: @Composable () -> Unit,
     val unselectedIcon: @Composable () -> Unit
 ) {
     object Home : MainNavigationItem(
         route = "home",
-        titleResId = R.string.navigation_home, // 리소스 추가
+        titleResId = R.string.navigation_home,
         selectedIcon = { Icon(Icons.Filled.Home, contentDescription = "홈") },
         unselectedIcon = { Icon(Icons.Outlined.Home, contentDescription = "홈") }
     )
 
     object MBTI : MainNavigationItem(
         route = "mbti",
-        titleResId = R.string.navigation_mbti, // 리소스 추가
+        titleResId = R.string.navigation_mbti,
         selectedIcon = { Icon(Icons.Filled.Psychology, contentDescription = "MBTI") },
         unselectedIcon = { Icon(Icons.Outlined.Psychology, contentDescription = "MBTI") }
     )
 
     object GaitAnalysis : MainNavigationItem(
         route = "gait_analysis",
-        titleResId = R.string.navigation_gait_analysis, // 리소스 추가 필요
+        titleResId = R.string.navigation_gait_analysis,
         selectedIcon = { Icon(Icons.Filled.ShowChart, contentDescription = "보행 분석") },
         unselectedIcon = { Icon(Icons.Outlined.ShowChart, contentDescription = "보행 분석") }
     )
 
     object MyPage : MainNavigationItem(
         route = "my_page",
-        titleResId = R.string.navigation_mypage, // 리소스 추가
+        titleResId = R.string.navigation_mypage,
         selectedIcon = { Icon(Icons.Filled.Person, contentDescription = "마이페이지") },
         unselectedIcon = { Icon(Icons.Outlined.Person, contentDescription = "마이페이지") }
     )
@@ -105,12 +102,23 @@ sealed class MainNavigationItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainNavigationScreen(
-    externalNavController: NavHostController? = null
+    externalNavController: NavHostController,
+    authViewModel: AuthViewModel
 ) {
     val navController = rememberNavController()
     val recordingViewModel: RecordingViewModel = hiltViewModel()
-//    val userInfoViewModel: UserInfoViewModel = hiltViewModel()
-    val profileGaitViewModel : ProfileGaitViewModel = hiltViewModel()
+    val profileGaitViewModel: ProfileGaitViewModel = hiltViewModel()
+
+    // 로그아웃 상태 구독
+    val authUiState by authViewModel.uiState.collectAsState()
+
+    // 로그아웃 완료시 처리
+    LaunchedEffect(authUiState.logoutCompleted) {
+        if (authUiState.logoutCompleted) {
+            // 로그아웃 완료 플래그 리셋
+            authViewModel.resetLogoutCompleted()
+        }
+    }
 
     val navigationItems = listOf(
         MainNavigationItem.Home,
@@ -128,21 +136,6 @@ fun MainNavigationScreen(
     // 측정 관련 화면인지 확인
     val isRecordingRelatedScreen = remember(currentRoute) {
         currentRoute?.startsWith("recording") ?: false
-    }
-    // 사용자 정보 가져오기
-    val userProfile = remember {
-        UserProfile(
-            id = profileGaitViewModel.uiState.value.selectedProfile?.id ?: "",
-            accountId = profileGaitViewModel.uiState.value.selectedProfile?.accountId ?: "",
-            name = profileGaitViewModel.uiState.value.selectedProfile?.name ?: "",
-            gender = profileGaitViewModel.uiState.value.selectedProfile?.gender ?: "",
-            height = profileGaitViewModel.uiState.value.selectedProfile?.height ?: "",
-            weight = profileGaitViewModel.uiState.value.selectedProfile?.weight ?: "",
-            mbti = profileGaitViewModel.uiState.value.selectedProfile?.mbti ?:"",
-            createdAt = profileGaitViewModel.uiState.value.selectedProfile?.createdAt,
-            updatedAt = profileGaitViewModel.uiState.value.selectedProfile?.updatedAt,
-
-        )
     }
 
     // 선택된 탭 상태 관리
@@ -265,11 +258,8 @@ fun MainNavigationScreen(
             composable(MainNavigationItem.GaitAnalysis.route) {
                 UpdatedGaitAnalysisScreen(
                     onNavigateToProfiles = {
-                        if (externalNavController != null) {
-                            // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
-                            externalNavController.navigate("profile_management")
-                        } else {
-                        }
+                        // 프로필 관리 화면으로 이동
+                        externalNavController.navigate(NavDestinations.PROFILE_MANAGEMENT)
                     }
                 )
             }
@@ -279,21 +269,12 @@ fun MainNavigationScreen(
                 MyPageScreen(
                     navController = navController,
                     onLogOut = {
-                        if (externalNavController != null) {
-                            // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
-                            externalNavController.navigate("login?fromLogout=true") {
-                                popUpTo("home") { inclusive = true }
-                            }
-                        } else {
-                        }
+                        // 로그아웃 수행
+                        authViewModel.signOut()
                     },
                     onClickProfileEdit = {
-                        if (externalNavController != null) {
-                            // 외부 네비게이션 컨트롤러를 통해 user_info 화면으로 이동
-                            externalNavController.navigate("user_info?isEdit=true") {
-                            }
-                        } else {
-                        }
+                        // 프로필 관리 화면으로 이동
+                        externalNavController.navigate(NavDestinations.PROFILE_MANAGEMENT)
                     }
                 )
             }
@@ -316,16 +297,9 @@ fun MainNavigationScreen(
                     onNavigateToResults = {
                         navController.navigate("recording_results")
                     },
-                    onNavigateToUserInfo = {profile ->
-                        // 수정된 부분: 외부 네비게이션 컨트롤러가 있다면 그것을 사용
-                        if (externalNavController != null) {
-                                // 편집할 프로필 ID 전달
-                                externalNavController.navigate("profile_edit/${profile.id}")
-
-                        } else {
-
-                        }
-
+                    onNavigateToUserInfo = { profile ->
+                        // 프로필 편집 화면으로 이동
+                        externalNavController.navigate("profile_edit/${profile.id}")
                     },
                     onBackPressed = {
                         // 측정 모드 화면에서 뒤로가기 시 홈 화면으로 이동
@@ -360,17 +334,6 @@ fun MainNavigationScreen(
                                 saveState = true
                             }
                         }
-                    }
-                )
-            }
-
-            // MainNavigation 내에서 간단한 사용자 정보 편집 화면 추가
-            composable("local_user_info_edit") {
-                UserInfoScreen(
-                    profileViewModel = profileGaitViewModel,
-                    isEdit = true,
-                    onNavigateNext = {
-                        navController.popBackStack()
                     }
                 )
             }

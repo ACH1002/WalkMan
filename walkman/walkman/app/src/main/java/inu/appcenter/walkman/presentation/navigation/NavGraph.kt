@@ -143,7 +143,8 @@ fun GaitxNavGraph(
         composable("main_navigation") {
             // 외부 네비게이션 컨트롤러 전달
             MainNavigationScreen(
-                externalNavController = navController
+                externalNavController = navController,
+                authViewModel = authViewModel
             )
         }
 

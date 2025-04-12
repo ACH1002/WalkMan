@@ -35,6 +35,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -42,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,13 +56,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.domain.model.AuthState
 import inu.appcenter.walkman.presentation.screen.mypage.components.SettingItem
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
-import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,14 +69,18 @@ fun MyPageScreen(
     navController: NavController,
     profileGaitViewModel: ProfileGaitViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel(),
-    onLogOut : () -> Unit,
-    onClickProfileEdit : () -> Unit
+    onLogOut: () -> Unit,
+    onClickProfileEdit: () -> Unit
 ) {
     val authState by authViewModel.authState.collectAsState()
+    val uiState by authViewModel.uiState.collectAsState()
 
     val profileState by profileGaitViewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
     val selectedProfile = profileState.selectedProfile
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     val name = selectedProfile?.name ?: ""
     val gender = selectedProfile?.gender ?: ""
@@ -82,23 +88,24 @@ fun MyPageScreen(
     val weight = selectedProfile?.weight ?: ""
     val mbti = selectedProfile?.mbti ?: ""
 
-    val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(
-        key1 = true
-    ) {
-        Log.d("isUserLoggedInInMyPageScreen", authState.toString())
-        authViewModel.isUserLoggedIn()
+    // 로그아웃 완료 후 이동
+    LaunchedEffect(uiState.logoutCompleted) {
+        if (uiState.logoutCompleted && !uiState.isLoggedIn) {
+            Log.d("MyPageScreen", "로그아웃 완료됨: isLoggedIn=${uiState.isLoggedIn}, logoutCompleted=${uiState.logoutCompleted}")
+            // 로그아웃 완료 시 콜백 호출
+            onLogOut()
+            // 로그아웃 상태 리셋
+            authViewModel.resetLogoutCompleted()
+        }
     }
 
-    // 로그아웃 완료 후 이동
-    LaunchedEffect(authState.logoutCompleted) {
-        if (authState.logoutCompleted && !authState.isLoggedIn) {
-            Log.d("MyPageScreen", "isLoggedIn : ${authState.isLoggedIn}, logoutCompleted : ${authState.logoutCompleted}")
-
-            // 로그아웃 상태를 네비게이션 인자로 전달
-            onLogOut()
-            authViewModel.resetLogoutCompleted()
+    // 오류 메시지 표시
+    LaunchedEffect(uiState.error) {
+        if (uiState.error != null) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(uiState.error!!)
+                authViewModel.clearError()
+            }
         }
     }
 
@@ -131,7 +138,8 @@ fun MyPageScreen(
                 )
             )
         },
-        containerColor = WalkManColors.Background
+        containerColor = WalkManColors.Background,
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -151,7 +159,9 @@ fun MyPageScreen(
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // 프로필 아이콘
@@ -239,28 +249,26 @@ fun MyPageScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // 프로필 편집 버튼
-//                    OutlinedButton(
-//                        onClick = {
-//                            onClickProfileEdit()
-//                        },
-//                        colors = ButtonDefaults.outlinedButtonColors(
-//                            contentColor = WalkManColors.Primary
-//                        ),
-//                        border = ButtonDefaults.outlinedButtonBorder.copy(
-//                            brush = SolidColor(WalkManColors.Primary)
-//                        ),
-//                        shape = RoundedCornerShape(8.dp)
-//                    ) {
-//                        Icon(
-//                            imageVector = Icons.Default.Edit,
-//                            contentDescription = stringResource(id = R.string.edit_profile),
-//                            modifier = Modifier.size(16.dp)
-//                        )
-//
-//                        Spacer(modifier = Modifier.width(4.dp))
-//
-//                        Text(text = stringResource(id = R.string.edit_profile))
-//                    }
+                    OutlinedButton(
+                        onClick = onClickProfileEdit,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = WalkManColors.Primary
+                        ),
+                        border = ButtonDefaults.outlinedButtonBorder.copy(
+                            brush = SolidColor(WalkManColors.Primary)
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = stringResource(id = R.string.edit_profile),
+                            modifier = Modifier.size(16.dp)
+                        )
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        Text(text = stringResource(id = R.string.edit_profile))
+                    }
                 }
             }
 
@@ -364,22 +372,27 @@ fun MyPageScreen(
                         subtitle = stringResource(id = R.string.export_data_desc),
                         onClick = { /* 데이터 내보내기 기능 */ }
                     )
-                }
-                if (authState.isLoggedIn) {
-                    Spacer(modifier = Modifier.height(24.dp))
 
-                    Button(
-                        onClick = {
-                            onLogoutClick()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = WalkManColors.Error
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp)
-                    ) {
-                        Text("로그아웃")
+                    // 로그인 상태일 때만 로그아웃 버튼 표시
+                    if (when (authState) {
+                            is AuthState.Authenticated,
+                            is AuthState.AuthenticatedWithoutProfile -> true
+                            else -> false
+                        }) {
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Button(
+                            onClick = onLogoutClick,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = WalkManColors.Error
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                        ) {
+                            Text(stringResource(id = R.string.logout))
+                        }
                     }
                 }
             }
@@ -387,9 +400,7 @@ fun MyPageScreen(
     }
 }
 
-
-
-// 현재 언어가 한국어인지 확인하는 함수 (LanguageManager 대신 사용)
+// 현재 언어가 한국어인지 확인하는 함수
 @Composable
 private fun isKorean(): Boolean {
     return stringResource(id = R.string.language_code) == "ko"

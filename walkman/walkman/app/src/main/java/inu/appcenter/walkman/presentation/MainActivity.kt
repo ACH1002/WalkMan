@@ -26,6 +26,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.WalkManApplication
 import inu.appcenter.walkman.data.remote.SupabaseClient
+import inu.appcenter.walkman.presentation.navigation.AppNavHost
 import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
@@ -46,7 +47,6 @@ private const val REQUEST_USAGE_STATS_PERMISSION = 1001
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
-    private val authViewModel: AuthViewModel by viewModels() // AuthViewModel 추가
     private lateinit var languageManager: LanguageManager
 
     @Inject
@@ -75,7 +75,8 @@ class MainActivity : ComponentActivity() {
         // 스플래시 스크린 설정
         installSplashScreen().apply {
             setKeepOnScreenCondition {
-                viewModel.uiState.value.isLoading
+                // viewModel.uiState.value.isLoading - AppNavHost로 이동했으므로 더 이상 필요 없음
+                false // 시스템 스플래시 화면은 바로 닫고, Compose 스플래시 화면으로 전환
             }
         }
 
@@ -102,8 +103,6 @@ class MainActivity : ComponentActivity() {
         // 앱 사용 통계 권한 확인
         checkAndRequestUsageStatsPermission()
 
-        authViewModel.isUserLoggedIn()
-
         // 메인 UI 설정
         setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -111,12 +110,13 @@ class MainActivity : ComponentActivity() {
                 darkTheme = false,
                 hideNavigationBar = true
             ) {
-                GaitxNavGraph(
-                    onOnboardingComplete = {
-                        viewModel.markOnboardingShown()
-                        sessionManager.setOnboardingCompleted(true)
-                    }
-                )
+                AppNavHost()
+//                GaitxNavGraph(
+//                    onOnboardingComplete = {
+//                        viewModel.markOnboardingShown()
+//                        sessionManager.setOnboardingCompleted(true)
+//                    }
+//                )
             }
         }
     }

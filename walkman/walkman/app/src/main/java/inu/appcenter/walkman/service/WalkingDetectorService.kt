@@ -102,16 +102,21 @@ class WalkingDetectorService : Service(), SensorEventListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand: ${intent?.action}")
 
+        // 즉시 포그라운드 서비스 시작 (지연 없이 바로 호출)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                createNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, createNotification())
+        }
+
+        // 인텐트 액션 처리
         when (intent?.action) {
             ACTION_START -> startService()
             ACTION_STOP -> stopService()
-            // 테스트용 강제 걷기 상태 설정
-            "FORCE_WALKING" -> {
-                val forced = intent.getBooleanExtra("is_walking", false)
-                isWalking = forced
-                lastStepTime = System.currentTimeMillis()
-                Log.d(TAG, "강제 걷기 상태 설정: $isWalking")
-            }
         }
 
         return START_STICKY
@@ -128,15 +133,6 @@ class WalkingDetectorService : Service(), SensorEventListener {
             Log.e(TAG, "사용 통계 권한이 없습니다")
             stopSelf()
             return
-        }
-
-        // 포그라운드 서비스 시작
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIFICATION_ID,
-                createNotification(),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            )
         }
 
         // WakeLock 획득

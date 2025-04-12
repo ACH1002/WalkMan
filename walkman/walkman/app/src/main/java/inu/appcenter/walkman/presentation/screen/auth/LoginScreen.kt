@@ -1,7 +1,5 @@
-// presentation/screen/auth/LoginScreen.kt
 package inu.appcenter.walkman.presentation.screen.auth
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,89 +32,59 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.sp
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
-import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    viewModel: AuthViewModel = hiltViewModel(),
-    profileGaitViewModel: ProfileGaitViewModel = hiltViewModel(),
-    fromLogout: Boolean = false,
-    onLoginSuccess: () -> Unit,
-    onContinueAsGuest: () -> Unit,
-    onNavigateToSignUp: () -> Unit
+    viewModel: AuthViewModel,
+    onNavigateToSignUp: () -> Unit,
+    onLoginSuccess: () -> Unit = {},
+    onContinueAsGuest: () -> Unit = {},
+    fromLogout: Boolean = false
 ) {
-    val authState by viewModel.authState.collectAsState()
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    val authUiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var emailValue by remember { mutableStateOf("") }
-    var passwordValue by remember { mutableStateOf("") }
-
-    var hasAttemptedLogin by remember { mutableStateOf(false) }
-
-    val coroutineScope = rememberCoroutineScope()
-
-    var isFromLogout by remember { mutableStateOf(fromLogout || viewModel.wasJustLoggedOut()) }
-
-    LaunchedEffect(key1 = true) {
-        Log.d("LoginScreen", "초기화 - fromLogout: $fromLogout, wasJustLoggedOut: ${viewModel.wasJustLoggedOut()}")
-
-        // 로그인 상태 확인 (항상 호출)
-        viewModel.isUserLoggedIn()
-
-        // 세션 매니저의 로그아웃 플래그 초기화
-        if (isFromLogout) {
-            viewModel.clearLogoutFlag()
+    // 로그아웃 메시지 표시
+    LaunchedEffect(fromLogout) {
+        if (fromLogout) {
+            snackbarHostState.showSnackbar("로그아웃 되었습니다.")
         }
     }
 
-    LaunchedEffect(authState.isLoggedIn) {
-        Log.d("LoginScreen", "상태 변경 - isLoggedIn: ${authState.isLoggedIn}, isFromLogout: $isFromLogout")
-
-        // 로그아웃 직후가 아닐 때만 자동 로그인 처리
-        if (authState.isLoggedIn && !isFromLogout) {
-            profileGaitViewModel.loadUserProfiles()
-            onLoginSuccess()
-        }
-
-        // 로그인 상태가 확실히 false로 확인되면 로그아웃 플래그 초기화
-        if (!authState.isLoggedIn) {
-            isFromLogout = false
-        }
-    }
-
-    // Error message display
-    LaunchedEffect(authState.error) {
-        authState.error?.let { error ->
-            snackbarHostState.showSnackbar(error)
+    // 오류 메시지 표시
+    LaunchedEffect(authUiState.error) {
+        if (authUiState.error != null) {
+            snackbarHostState.showSnackbar(authUiState.error!!)
             viewModel.clearError()
         }
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
+    ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(paddingValues)
                 .background(WalkManColors.Background),
             contentAlignment = Alignment.Center
         ) {
@@ -136,164 +104,153 @@ fun LoginScreen(
                     )
             )
 
-            if (authState.isLoading) {
-                CircularProgressIndicator(color = WalkManColors.Primary)
-            } else {
-                Column(
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // 로고 및 타이틀
+                Image(
+                    painter = painterResource(id = R.drawable.ic_logo_gaitx),
+                    contentDescription = stringResource(id = R.string.app_name),
+                    modifier = Modifier.size(100.dp)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 앱 제목
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = WalkManColors.Primary
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 앱 설명
+                Text(
+                    text = stringResource(R.string.analyze_your_walking_patterns_and_improve_your_gait),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = WalkManColors.TextSecondary
+                )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        viewModel.signInWithGoogle()
+                    },
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    // 앱 로고
                     Image(
-                        painter = painterResource(id = R.drawable.ic_logo_gaitx),
-                        contentDescription = "App Logo",
-                        modifier = Modifier.size(120.dp)
+                        painter = painterResource(id = R.drawable.ic_google_logo),
+                        contentDescription = "Google Logo",
+                        modifier = Modifier.size(24.dp)
                     )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // 앱 제목
+                    Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "GAITX",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontWeight = FontWeight.Bold,
+                        text = stringResource(R.string.login_with_google),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 이메일 입력
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text(stringResource(id = R.string.email)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 비밀번호 입력
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(stringResource(id = R.string.password)) },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // 로그인 버튼
+                Button(
+                    onClick = {
+                        viewModel.signInWithEmail(email, password)
+                    },
+                    enabled = !authUiState.isLoading && email.isNotBlank() && password.isNotBlank(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = WalkManColors.Primary,
+                        disabledContainerColor = Color.Gray
+                    )
+                ) {
+                    if (authUiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(id = R.string.login),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 회원가입 버튼
+                TextButton(onClick = onNavigateToSignUp) {
+                    Text(
+                        text = stringResource(id = R.string.signup_prompt),
                         color = WalkManColors.Primary
                     )
+                }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 앱 설명
-                    Text(
-                        text = "Analyze your walking patterns and improve your gait",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        color = WalkManColors.TextSecondary
-                    )
-
-                    Spacer(modifier = Modifier.height(48.dp))
-
-                    // 구글 로그인 버튼
-                    OutlinedButton(
-                        onClick = {
-                            hasAttemptedLogin = true
-                            viewModel.signInWithGoogle()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_google_logo),
-                            contentDescription = "Google Logo",
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
+                // 게스트 모드 버튼 (사용하지 않을 경우 제거)
+                if (false) { // 현재 구현에서는 게스트 모드 미사용
+                    TextButton(onClick = onContinueAsGuest) {
                         Text(
-                            text = "Sign in with Google",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+                            text = stringResource(id = R.string.continue_as_guest),
+                            color = WalkManColors.TextSecondary,
+                            fontWeight = FontWeight.Normal,
+                            textAlign = TextAlign.Center
                         )
                     }
+                }
+            }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 이메일 입력 필드
-                    OutlinedTextField(
-                        value = emailValue,
-                        onValueChange = { emailValue = it },
-                        label = { Text("Email") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        maxLines = 1,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 비밀번호 입력 필드
-                    OutlinedTextField(
-                        value = passwordValue,
-                        onValueChange = { passwordValue = it },
-                        label = { Text("Password") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        maxLines = 1,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Button(
-                        onClick = {
-                            if (emailValue.isNotBlank() && passwordValue.isNotBlank()) {
-                                hasAttemptedLogin = true
-                                viewModel.signInWithEmail(emailValue, passwordValue)
-                            } else {
-                                coroutineScope.launch {
-                                    snackbarHostState.showSnackbar("이메일과 비밀번호를 입력해주세요.")
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = WalkManColors.Primary
-                        )
-                    ) {
-                        Text(
-                            text = "로그인",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 회원가입 버튼 추가
-                    OutlinedButton(
-                        onClick = onNavigateToSignUp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        border = ButtonDefaults.outlinedButtonBorder.copy(
-                            width = 1.dp,
-                            brush = SolidColor(WalkManColors.Primary)
-                        )
-                    ) {
-                        Text(
-                            text = "회원가입",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = WalkManColors.Primary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 게스트로 계속 버튼
-                    TextButton(
-                        onClick = { onContinueAsGuest() },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Continue as Guest",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = WalkManColors.TextSecondary
-                        )
-                    }
+            // 로딩 오버레이
+            if (authUiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = WalkManColors.Primary)
                 }
             }
         }

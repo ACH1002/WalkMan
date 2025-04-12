@@ -6,37 +6,29 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -45,52 +37,66 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.unit.sp
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.data.model.UserProfile
+import inu.appcenter.walkman.presentation.components.GenderSelector
+import inu.appcenter.walkman.presentation.components.HeightSelector
+import inu.appcenter.walkman.presentation.components.MBTISelector
+import inu.appcenter.walkman.presentation.components.WeightSelector
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
-import inu.appcenter.walkman.presentation.viewmodel.UserInfoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserInfoScreen(
-    profileViewModel: ProfileGaitViewModel = hiltViewModel(),
-    onNavigateNext: () -> Unit,
-    isEdit: Boolean = false
+    profileViewModel: ProfileGaitViewModel,
+    isEdit: Boolean,
+    onNavigateNext: () -> Unit
 ) {
+    // UI 상태 구독
     val uiState by profileViewModel.uiState.collectAsState()
-    var mbtiDropdownExpanded by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
-    val keyboardController = LocalSoftwareKeyboardController.current
+    val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
 
-    // stringResource 값을 먼저 변수에 저장
-    val maleLabelText = stringResource(id = R.string.gender_male)
-    val femaleLabelText = stringResource(id = R.string.gender_female)
+    // 로컬 상태 관리
+    var name by rememberSaveable { mutableStateOf(uiState.name) }
+    var gender by rememberSaveable { mutableStateOf(uiState.gender) }
+    var height by rememberSaveable { mutableStateOf(uiState.height) }
+    var weight by rememberSaveable { mutableStateOf(uiState.weight) }
+    var mbti by rememberSaveable { mutableStateOf(uiState.mbti) }
+    var isLoading by remember { mutableStateOf(false) }
 
-    val mbtiTypes = listOf(
-        "ISTJ", "ISFJ", "INFJ", "INTJ",
-        "ISTP", "ISFP", "INFP", "INTP",
-        "ESTP", "ESFP", "ENFP", "ENTP",
-        "ESTJ", "ESFJ", "ENFJ", "ENTJ"
-    )
-
-    // 화면이 처음 표시될 때 기존 데이터 로드를 확인
+    // 수정 모드일 경우 기존 정보 불러오기
     LaunchedEffect(Unit) {
-        // viewModel에서 데이터가 이미 로드되어 있는지 확인
-        // 필요한 경우 여기에 추가 로직을 넣을 수 있습니다
+        if (isEdit && uiState.selectedProfile != null) {
+            name = uiState.selectedProfile?.name ?: ""
+            gender = uiState.selectedProfile?.gender ?: ""
+            height = uiState.selectedProfile?.height ?: ""
+            weight = uiState.selectedProfile?.weight ?: ""
+            mbti = uiState.selectedProfile?.mbti ?: ""
+        }
+    }
+
+    // 필요한 정보가 모두 채워졌는지 확인
+    val isComplete = name.isNotBlank() && gender.isNotBlank() &&
+            height.isNotBlank() && weight.isNotBlank()
+
+    // 에러 메시지 표시
+    LaunchedEffect(uiState.error) {
+        if (uiState.error != null) {
+            snackbarHostState.showSnackbar(uiState.error!!)
+            profileViewModel.clearError()
+        }
     }
 
     Scaffold(
@@ -98,289 +104,210 @@ fun UserInfoScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(id = if (isEdit) R.string.edit_profile else R.string.title_user_info),
+                        text = if (isEdit) {
+                            stringResource(id = R.string.edit_profile)
+                        } else {
+                            stringResource(id = R.string.create_profile)
+                        },
                         color = WalkManColors.Primary,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     if (isEdit) {
-                        IconButton(onClick = onNavigateNext) {
+                        IconButton(onClick = { onNavigateNext() }) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = stringResource(id = R.string.btn_back),
-                                tint = WalkManColors.TextPrimary
+                                tint = WalkManColors.Primary
                             )
                         }
-                    } else null
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = WalkManColors.Background
-                ),
-                modifier = Modifier.statusBarsPadding()
+                )
             )
         },
-        containerColor = WalkManColors.Background,
-        // 키보드 영역을 고려한 insets 설정
-        contentWindowInsets = WindowInsets.ime.union(WindowInsets(0, 0, 0, 0))
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(scrollState)
-                .imePadding(), // 키보드 패딩 추가
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(WalkManColors.Background),
+            contentAlignment = Alignment.Center
         ) {
-            // 온보딩 진행 상태 표시 (초기 설정시에만 표시)
-            if (!isEdit) {
-                Row(
-                    modifier = Modifier.padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .background(Color.LightGray, shape = RoundedCornerShape(6.dp))
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .background(WalkManColors.Primary, shape = RoundedCornerShape(6.dp))
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(12.dp)
-                            .background(Color.LightGray, shape = RoundedCornerShape(6.dp))
-                    )
-                }
-            }
-
-            if (!isEdit) {
-                Text(
-                    text = stringResource(id = R.string.title_user_info),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = WalkManColors.Primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 32.dp)
-                )
-            }
-
-            // 이름 입력
-            OutlinedTextField(
-                value = uiState.name,
-                onValueChange = { profileViewModel.updateName(it) },
-                label = { Text(stringResource(id = R.string.label_name), color = WalkManColors.TextSecondary) },
-                placeholder = { Text(stringResource(id = R.string.placeholder_name), color = WalkManColors.TextSecondary) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedTextColor = WalkManColors.TextPrimary,
-                    focusedTextColor = WalkManColors.TextPrimary,
-                    cursorColor = WalkManColors.Primary,
-                    focusedBorderColor = WalkManColors.Primary,
-                    unfocusedBorderColor = WalkManColors.TextSecondary
-                ),
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                maxLines = 1,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Next
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                )
-            )
-
-            // 성별 선택
-            Text(
-                text = stringResource(id = R.string.label_gender),
-                style = MaterialTheme.typography.bodyMedium,
-                color = WalkManColors.TextPrimary,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 8.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(scrollState),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = { profileViewModel.updateGender(maleLabelText) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (uiState.gender == maleLabelText) WalkManColors.Primary else Color.LightGray
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
+                if (!isEdit) {
                     Text(
-                        maleLabelText,
-                        color = if (uiState.gender == maleLabelText) Color.White else WalkManColors.TextPrimary
+                        text = stringResource(id = R.string.user_info_intro),
+                        fontSize = 16.sp,
+                        color = WalkManColors.TextSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 24.dp)
                     )
                 }
 
-                Button(
-                    onClick = { profileViewModel.updateGender(femaleLabelText) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (uiState.gender == femaleLabelText) WalkManColors.Primary else Color.LightGray
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        femaleLabelText,
-                        color = if (uiState.gender == femaleLabelText) Color.White else WalkManColors.TextPrimary
-                    )
-                }
-            }
-
-            // MBTI 선택
-            Text(
-                text = stringResource(id = R.string.label_mbti),
-                style = MaterialTheme.typography.bodyMedium,
-                color = WalkManColors.TextPrimary,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 8.dp)
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp)
-            ) {
+                // 이름
                 OutlinedTextField(
-                    value = uiState.mbti,
-                    onValueChange = { },
-                    readOnly = true,
-                    label = { Text(stringResource(id = R.string.label_mbti), color = WalkManColors.TextSecondary) },
-                    placeholder = { Text(stringResource(id = R.string.placeholder_mbti), color = WalkManColors.TextSecondary) },
-                    trailingIcon = {
-                        IconButton(onClick = { mbtiDropdownExpanded = true }) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = stringResource(id = R.string.select_mbti),
-                                tint = WalkManColors.TextSecondary
-                            )
-                        }
-                    },
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        unfocusedTextColor = WalkManColors.TextPrimary,
-                        focusedTextColor = WalkManColors.TextPrimary,
-                        cursorColor = WalkManColors.Primary,
-                        focusedBorderColor = WalkManColors.Primary,
-                        unfocusedBorderColor = WalkManColors.TextSecondary
-                    ),
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text(stringResource(id = R.string.name_label)) },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                DropdownMenu(
-                    expanded = mbtiDropdownExpanded,
-                    onDismissRequest = { mbtiDropdownExpanded = false },
-                    modifier = Modifier.fillMaxWidth(0.9f)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 성별 선택기
+                Text(
+                    text = stringResource(id = R.string.gender_label),
+                    color = WalkManColors.TextPrimary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+
+                GenderSelector(
+                    selectedGender = gender,
+                    onGenderSelected = { gender = it }
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // 신체 정보
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    mbtiTypes.forEach { mbtiType ->
-                        DropdownMenuItem(
-                            text = { Text(mbtiType) },
-                            onClick = {
-                                profileViewModel.updateMbti(mbtiType)
-                                mbtiDropdownExpanded = false
-                            }
+                    // 키 선택기
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.height_label),
+                            color = WalkManColors.TextPrimary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        HeightSelector(
+                            selectedHeight = height,
+                            onHeightSelected = { height = it }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    // 몸무게 선택기
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.weight_label),
+                            color = WalkManColors.TextPrimary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        WeightSelector(
+                            selectedWeight = weight,
+                            onWeightSelected = { weight = it }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // MBTI 선택기 (선택 사항)
+                Text(
+                    text = stringResource(id = R.string.mbti_label_optional),
+                    color = WalkManColors.TextPrimary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                )
+
+                MBTISelector(
+                    selectedMBTI = mbti,
+                    onMBTISelected = { mbti = it }
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // 완료 버튼
+                Button(
+                    onClick = {
+                        isLoading = true
+                        if (isEdit && uiState.selectedProfile != null) {
+                            // 프로필 업데이트
+                            val updatedProfile = UserProfile(
+                                id = uiState.selectedProfile?.id,
+                                accountId = uiState.selectedProfile?.accountId,
+                                name = name,
+                                gender = gender,
+                                height = height,
+                                weight = weight,
+                                mbti = mbti,
+                                createdAt = uiState.selectedProfile?.createdAt,
+                                updatedAt = null // 자동 업데이트
+                            )
+                            profileViewModel.updateUserProfile(updatedProfile)
+                        } else {
+                            // 새 프로필 생성
+                            profileViewModel.createUserProfile(name, gender, height, weight, mbti)
+                        }
+                        // 저장 완료 후 이동
+                        onNavigateNext()
+                    },
+                    enabled = isComplete && !isLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = WalkManColors.Primary,
+                        disabledContainerColor = Color.Gray
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White
+                        )
+                    } else {
+                        Text(
+                            text = if (isEdit) {
+                                stringResource(id = R.string.save_changes)
+                            } else {
+                                stringResource(id = R.string.create_profile)
+                            },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                     }
                 }
             }
 
-            // 키 입력
-            OutlinedTextField(
-                value = uiState.height,
-                onValueChange = { profileViewModel.updateHeight(it) },
-                label = { Text(stringResource(id = R.string.label_height), color = WalkManColors.TextSecondary) },
-                placeholder = { Text(stringResource(id = R.string.placeholder_height), color = WalkManColors.TextSecondary) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedTextColor = WalkManColors.TextPrimary,
-                    focusedTextColor = WalkManColors.TextPrimary,
-                    cursorColor = WalkManColors.Primary,
-                    focusedBorderColor = WalkManColors.Primary,
-                    unfocusedBorderColor = WalkManColors.TextSecondary
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                maxLines = 1,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Next,
-                    keyboardType = KeyboardType.Number
-                ),
-                keyboardActions = KeyboardActions(
-                    onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                )
-            )
-
-            // 체중 입력
-            OutlinedTextField(
-                value = uiState.weight,
-                onValueChange = { profileViewModel.updateWeight(it) },
-                label = { Text(stringResource(id = R.string.label_weight), color = WalkManColors.TextSecondary) },
-                placeholder = { Text(stringResource(id = R.string.placeholder_weight), color = WalkManColors.TextSecondary) },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedTextColor = WalkManColors.TextPrimary,
-                    focusedTextColor = WalkManColors.TextPrimary,
-                    cursorColor = WalkManColors.Primary,
-                    focusedBorderColor = WalkManColors.Primary,
-                    unfocusedBorderColor = WalkManColors.TextSecondary
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                maxLines = 1,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Done,
-                    keyboardType = KeyboardType.Number
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        keyboardController?.hide()
-                        focusManager.clearFocus()
-                    }
-                )
-            )
-
-            // 저장 버튼 텍스트를 변수에 저장
-            val buttonText = stringResource(id = if (isEdit) R.string.btn_save else R.string.btn_next)
-
-            Button(
-                onClick = {
-                    profileViewModel.createUserProfile(
-                        name = uiState.name,
-                        gender = uiState.gender,
-                        height = uiState.height,
-                        weight = uiState.weight,
-                        mbti = uiState.mbti
-                    )
-                    onNavigateNext()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = WalkManColors.Primary,
-                    disabledContainerColor = Color.LightGray
-                ),
-                shape = RoundedCornerShape(8.dp),
-                enabled = uiState.isComplete
-            ) {
-                Text(
-                    text = buttonText,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+            // 로딩 오버레이
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = WalkManColors.Primary)
+                }
             }
         }
     }

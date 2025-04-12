@@ -42,8 +42,8 @@
     <string name="placeholder_mbti">Select your MBTI</string>
     <string name="profile">Profile</string>
     <string name="default_user">User</string>
-    <string name="profile_height">Height %1$scm</string>
-    <string name="profile_weight">Weight %1$skg</string>
+    <string name="profile_height">Height %1$s</string>
+    <string name="profile_weight">Weight %1$s</string>
     <string name="profile_mbti">MBTI: %1$s</string>
     <string name="edit_profile">Edit Profile</string>
 
@@ -183,4 +183,66 @@
     <!-- 서비스 관련 -->
     <string name="walking_detector_service_name">Walking Detection Service</string>
     <string name="walking_detector_service_description">Provides warnings when using social media while walking</string>
+
+
+    <!-- Authentication related strings -->
+    <string name="login_title">Login to GAITX</string>
+    <string name="login">Login</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="login_with_google">Login with Google</string>
+    <string name="signup_prompt">Don\'t have an account? Sign up</string>
+    <string name="continue_as_guest">Continue as Guest</string>
+    <string name="signup">Sign Up</string>
+    <string name="signup_title">Create New Account</string>
+    <string name="password_mismatch">Passwords do not match</string>
+    <string name="already_have_account">Already have an account?</string>
+
+    <!-- Onboarding strings -->
+    <string name="onboarding_title_1">Welcome to GAITX</string>
+    <string name="onboarding_desc_1">Analyze your gait to understand your unique walking characteristics.</string>
+    <string name="onboarding_title_2">Three Measurement Modes</string>
+    <string name="onboarding_desc_2">Measure your walking patterns in different situations with video watching, pocket, and text input modes.</string>
+    <string name="onboarding_title_3">Set Up Personal Profile</string>
+    <string name="onboarding_desc_3">Enter your height, weight, MBTI and other information for more accurate analysis results.</string>
+    <string name="get_started">Get Started</string>
+    <string name="next">Next</string>
+
+    <!-- User info related -->
+    <string name="create_profile">Create Profile</string>
+    <string name="user_info_intro">Please enter the information below for more accurate analysis.</string>
+    <string name="name_label">Name</string>
+    <string name="gender_label">Gender</string>
+    <string name="height_label">Height</string>
+    <string name="weight_label">Weight</string>
+    <string name="mbti_label_optional">MBTI (Optional)</string>
+    <string name="select_height">Select Height</string>
+    <string name="select_weight">Select Weight</string>
+    <string name="prefer_not_to_say">Prefer not to say</string>
+    <string name="save_changes">Save Changes</string>
+
+    <!-- Network related -->
+    <string name="network_warning">Network Warning</string>
+    <string name="network_unavailable">Network connection unavailable</string>
+    <string name="network_reconnected">Network reconnected</string>
+
+    <!-- Cycle related -->
+    <string name="cycle_progress">Cycle Progress</string>
+    <string name="cycle_description">Three cycles of measurements are required. Each cycle consists of video, pocket, and text modes.</string>
+    <string name="current_cycle_status">Current %1$d/%2$d cycle, %3$d/%4$d modes completed</string>
+
+    <!-- Upload related -->
+    <string name="upload_completed">Upload Completed</string>
+    <string name="upload_complete_message">Data has been successfully uploaded.</string>
+    <string name="upload_in_progress">Uploading...</string>
+
+    <!-- Pocket mode related -->
+    <string name="pocket_mode_complete">Pocket mode measurement complete</string>
+    <string name="pocket_mode_info">Vibration will notify you when measurement is complete</string>
+    <string name="time_remaining_short">%1$d seconds left</string>
+    <string name="vibration_disabled">Vibration is disabled. Please check settings.</string>
+    <!-- MyPage -->
+    <string name="logout">logout</string>
+    <string name="analyze_your_walking_patterns_and_improve_your_gait">Analyze your walking patterns and improve your gait</string>
 </resources>
