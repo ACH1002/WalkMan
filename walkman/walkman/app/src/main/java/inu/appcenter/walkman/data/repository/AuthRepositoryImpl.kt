@@ -5,7 +5,6 @@ import inu.appcenter.walkman.domain.model.AuthResponse
 import inu.appcenter.walkman.domain.repository.AuthRepository
 import inu.appcenter.walkman.utils.SessionManager
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton

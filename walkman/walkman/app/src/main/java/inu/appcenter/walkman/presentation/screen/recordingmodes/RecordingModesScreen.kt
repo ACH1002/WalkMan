@@ -40,7 +40,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.data.model.UserProfile
 import inu.appcenter.walkman.domain.model.RecordingMode
-import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.ModeCard
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.UserInfoCard
 import inu.appcenter.walkman.presentation.theme.WalkManColors

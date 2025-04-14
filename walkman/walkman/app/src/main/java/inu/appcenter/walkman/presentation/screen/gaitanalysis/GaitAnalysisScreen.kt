@@ -80,6 +80,7 @@ import java.util.Locale
 @Composable
 fun UpdatedGaitAnalysisScreen(
     onNavigateToProfiles: () -> Unit,
+    onStartNewRecording : () -> Unit,
     viewModel: ProfileGaitViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -359,7 +360,9 @@ fun UpdatedGaitAnalysisScreen(
                             Spacer(modifier = Modifier.height(16.dp))
 
                             Button(
-                                onClick = { /* 측정 화면으로 이동 */ },
+                                onClick = {
+                                    onStartNewRecording()
+                                },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = WalkManColors.Primary
                                 )

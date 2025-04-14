@@ -260,6 +260,11 @@ fun MainNavigationScreen(
                     onNavigateToProfiles = {
                         // 프로필 관리 화면으로 이동
                         externalNavController.navigate(NavDestinations.PROFILE_MANAGEMENT)
+                    },
+                    onStartNewRecording = {
+                        // 선택된 탭은 계속 홈 탭으로 유지
+                        selectedTab = MainNavigationItem.GaitAnalysis.route
+                        navController.navigate("recording_modes")
                     }
                 )
             }

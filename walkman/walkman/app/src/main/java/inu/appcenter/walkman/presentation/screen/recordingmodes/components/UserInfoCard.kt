@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.data.model.UserProfile
-import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 
 @Composable

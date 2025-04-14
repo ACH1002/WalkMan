@@ -27,9 +27,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import inu.appcenter.walkman.WalkManApplication
 import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.presentation.navigation.AppNavHost
-import inu.appcenter.walkman.presentation.navigation.GaitxNavGraph
 import inu.appcenter.walkman.presentation.theme.WalkManTheme
-import inu.appcenter.walkman.presentation.viewmodel.AuthViewModel
 import inu.appcenter.walkman.presentation.viewmodel.MainViewModel
 import inu.appcenter.walkman.service.WalkingDetectorService
 import inu.appcenter.walkman.util.LanguageManager
