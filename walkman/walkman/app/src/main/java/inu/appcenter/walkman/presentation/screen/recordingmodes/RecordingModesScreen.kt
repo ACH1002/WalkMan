@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.data.model.UserProfile
 import inu.appcenter.walkman.domain.model.RecordingMode
+import inu.appcenter.walkman.presentation.screen.recordingmodes.components.CycleProgressCard
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.ModeCard
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.UserInfoCard
 import inu.appcenter.walkman.presentation.theme.WalkManColors
@@ -138,13 +139,12 @@ fun RecordingModesScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = stringResource(id = R.string.recording_modes_title),
-                style = MaterialTheme.typography.headlineSmall,
-                color = WalkManColors.Primary,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
+            val cycleState by viewModel.cycleState.collectAsState()
+            CycleProgressCard(
+                cycleState = cycleState,
+                completedModes = uiState.completedModes
             )
+            Spacer(modifier = Modifier.height(16.dp))
 
             // 측정 완료 상태 표시
             Text(
@@ -183,27 +183,6 @@ fun RecordingModesScreen(
             )
 
             Spacer(modifier = Modifier.weight(1f))
-
-            // 모든 측정이 완료된 경우에만 활성화되는 결과 페이지 이동 버튼
-            Button(
-                onClick = onNavigateToResults,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = WalkManColors.Primary,
-                    disabledContainerColor = Color.LightGray
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                enabled = uiState.completedModes.size == 3 // 모든 모드가 완료된 경우에만 활성화
-            ) {
-                Text(
-                    text = stringResource(id = R.string.btn_complete_recording),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
 
             // 현재 기록 중이면 중지 버튼 표시
             if (uiState.isRecording) {

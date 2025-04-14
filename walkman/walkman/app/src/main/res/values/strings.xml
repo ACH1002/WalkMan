@@ -245,4 +245,10 @@
     <!-- MyPage -->
     <string name="logout">logout</string>
     <string name="analyze_your_walking_patterns_and_improve_your_gait">Analyze your walking patterns and improve your gait</string>
+
+    <string name="network_disconnect_error">Disconnected Network</string>
+
+    <string name="recording_video_mode_short">Video</string>
+    <string name="recording_pocket_mode_short">Pocket</string>
+    <string name="recording_text_mode_short">Text</string>
 </resources>

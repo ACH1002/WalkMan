@@ -1,10 +1,11 @@
+// data/repository/StorageRepositoryImpl.kt
 package inu.appcenter.walkman.data.repository
 
 import android.content.Context
 import inu.appcenter.walkman.data.datasource.DriveServiceHelper
+import inu.appcenter.walkman.data.model.UserProfile
 import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.RecordingSession
-import inu.appcenter.walkman.domain.model.UserInfo
 import inu.appcenter.walkman.domain.repository.StorageRepository
 import java.io.File
 import java.io.FileWriter
@@ -20,15 +21,17 @@ class StorageRepositoryImpl @Inject constructor(
     private val driveServiceHelper: DriveServiceHelper
 ) : StorageRepository {
 
-    override suspend fun createCsvFile(
+    /**
+     * UserProfile을 사용하여 CSV 파일 생성
+     */
+    override suspend fun createCsvFileWithProfile(
         session: RecordingSession,
-        userInfo: UserInfo
+        userProfile: UserProfile
     ): File {
         val timestamp = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date())
 
-        // 새로운 파일명 형식: MBTI_모드_키_날짜
-        // MBTI가 없으면 "None"으로 표시
-        val mbtiPrefix = if (userInfo.mbti.isBlank()) "None" else userInfo.mbti
+        // 파일명 형식: MBTI_모드_키_날짜
+        val mbtiPrefix = userProfile.mbti ?: "None"
 
         // 모드를 영어로 변환
         val modeText = when(session.mode) {
@@ -37,9 +40,10 @@ class StorageRepositoryImpl @Inject constructor(
             RecordingMode.TEXT -> "Text"
         }
 
-        val height = userInfo.height.replace(" ", "")
+        val height = userProfile.height.toString().replace(" ", "")
 
-        val fileName = "${mbtiPrefix}_${modeText}_${height}_$timestamp.csv"
+        // 파일명 형식: MBTI_모드_키_날짜_프로필ID
+        val fileName = "${mbtiPrefix}_${modeText}_${height}_${timestamp}_${userProfile.id}.csv"
         val file = File(context.getExternalFilesDir(null), fileName)
 
         FileWriter(file).use { writer ->
@@ -60,12 +64,27 @@ class StorageRepositoryImpl @Inject constructor(
         return file
     }
 
+    /**
+     * 기본 파일 업로드
+     */
     override suspend fun uploadFileToDrive(file: File): String {
         return driveServiceHelper.uploadFile(file, getMimeType(file))
     }
 
+    /**
+     * 프로필 ID와 함께 파일을 드라이브에 업로드
+     */
+    override suspend fun uploadFileToDrive(file: File, profileId: String): String {
+        // 1. 메타데이터 방식 (기본)
+        return driveServiceHelper.uploadFile(file, getMimeType(file))
 
+        // 2. 프로필별 폴더 방식 (선택적)
+        // return driveServiceHelper.uploadFileToProfileFolder(file, getMimeType(file), profileId)
+    }
 
+    /**
+     * 파일 유형 확인
+     */
     private fun getMimeType(file: File): String {
         return when {
             file.name.endsWith(".csv") -> "text/csv"

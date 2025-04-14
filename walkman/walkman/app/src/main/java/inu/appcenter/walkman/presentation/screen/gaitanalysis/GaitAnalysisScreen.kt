@@ -508,7 +508,7 @@ fun UpdatedGaitAnalysisScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = WalkManColors.Primary.copy(alpha = 0.1f)
+                            containerColor = WalkManColors.CardBackground
                         ),
                         shape = RoundedCornerShape(12.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -539,6 +539,7 @@ fun UpdatedGaitAnalysisScreen(
                             }
                         }
                     }
+                    Spacer(Modifier.height(16.dp))
                 }
             }
         }
@@ -630,7 +631,8 @@ fun UpdatedGaitAnalysisScreen(
                 ) {
                     Text("프로필 관리")
                 }
-            }
+            },
+            containerColor = WalkManColors.CardBackground
         )
     }
 

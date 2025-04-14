@@ -69,8 +69,11 @@ import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import inu.appcenter.walkman.R
+import inu.appcenter.walkman.domain.model.NetworkStatus
 import inu.appcenter.walkman.domain.model.RecordingMode
+import inu.appcenter.walkman.presentation.screen.recording.components.NetworkStatusCard
 import inu.appcenter.walkman.presentation.screen.recording.components.SensorValueRow
+import inu.appcenter.walkman.presentation.screen.recording.components.UploadStatusIndicator
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 import kotlinx.coroutines.delay
@@ -231,11 +234,23 @@ fun RecordingScreen(
     // 성공 메시지 감지를 위한 효과
     LaunchedEffect(uiState.successMessage) {
         if (uiState.successMessage != null) {
-            // 성공 메시지가 표시되면 - 데이터 업로드가 완료된 상태
-            // 사용자가 성공 메시지를 볼 수 있도록 충분한 시간 제공
-            delay(2000) // 2초 동안 성공 메시지 표시
-            viewModel.clearMessages()
-            onNavigateBack() // 데이터 업로드 완료 후 RecordModeScreen으로 이동
+            // 네트워크가 연결되어 있고, 보류 중인 업로드가 없는 경우에만 자동으로 화면 전환
+            val networkConnected = viewModel.networkState.value is NetworkStatus.Connected
+            val noPendingUpload = !uiState.pendingUpload
+
+            if (networkConnected && noPendingUpload) {
+                // 성공 메시지가 표시되면 - 데이터 업로드가 완료된 상태
+                // 사용자가 성공 메시지를 볼 수 있도록 충분한 시간 제공
+                delay(2000) // 2초 동안 성공 메시지 표시
+                viewModel.clearMessages()
+                onNavigateBack() // 데이터 업로드 완료 후 RecordModeScreen으로 이동
+            } else {
+                // 네트워크 연결이 없거나 보류 중인 업로드가 있는 경우
+                // 메시지만 지우고 화면은 유지
+                delay(3000) // 3초 동안 성공 메시지 표시
+                viewModel.clearMessages()
+                // 사용자가 직접 뒤로가기 버튼을 눌러야 화면 이동
+            }
         }
     }
 
@@ -330,6 +345,14 @@ fun RecordingScreen(
         },
         containerColor = WalkManColors.Background
     ) { paddingValues ->
+        val networkState by viewModel.networkState.collectAsState()
+        if (networkState is NetworkStatus.Disconnected && uiState.isRecording) {
+            NetworkStatusCard(networkState = networkState)
+        }
+
+        val uploadState by viewModel.uploadState.collectAsState()
+        UploadStatusIndicator(uploadState = uploadState)
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -652,7 +675,6 @@ fun RecordingScreen(
                 }
             }
 
-            // 측정 완료 메시지
             if (fullMeasurementCompleted && !uiState.isRecording && !uiState.isUploading && uiState.successMessage == null) {
                 Card(
                     modifier = Modifier
@@ -675,6 +697,17 @@ fun RecordingScreen(
                             style = MaterialTheme.typography.titleSmall,
                             textAlign = TextAlign.Center
                         )
+
+                        // 네트워크 연결 없는 경우 추가 안내 표시
+                        if (networkState is NetworkStatus.Disconnected) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(id = R.string.recording_completed_90s),
+                                color = WalkManColors.TextSecondary,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }

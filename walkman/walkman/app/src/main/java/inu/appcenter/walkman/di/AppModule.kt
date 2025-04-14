@@ -10,7 +10,10 @@ import inu.appcenter.walkman.data.datasource.DriveServiceHelper
 import inu.appcenter.walkman.data.remote.SupabaseClient
 import inu.appcenter.walkman.data.repository.AppUsageRepositoryImpl
 import inu.appcenter.walkman.data.repository.AuthRepositoryImpl
+import inu.appcenter.walkman.data.repository.FeedbackRepositoryImpl
+import inu.appcenter.walkman.data.repository.NetworkMonitorImpl
 import inu.appcenter.walkman.data.repository.NotificationRepositoryImpl
+import inu.appcenter.walkman.data.repository.PendingUploadManager
 import inu.appcenter.walkman.data.repository.SensorRepositoryImpl
 import inu.appcenter.walkman.data.repository.StorageRepositoryImpl
 import inu.appcenter.walkman.data.repository.UserRepositoryImpl
@@ -20,6 +23,8 @@ import inu.appcenter.walkman.data.repository.user.UserProfileRepository
 import inu.appcenter.walkman.data.repository.user.UserProfileRepositoryImpl
 import inu.appcenter.walkman.domain.repository.AppUsageRepository
 import inu.appcenter.walkman.domain.repository.AuthRepository
+import inu.appcenter.walkman.domain.repository.FeedbackRepository
+import inu.appcenter.walkman.domain.repository.NetworkMonitor
 import inu.appcenter.walkman.domain.repository.NotificationRepository
 import inu.appcenter.walkman.domain.repository.SensorRepository
 import inu.appcenter.walkman.domain.repository.StorageRepository
@@ -27,6 +32,7 @@ import inu.appcenter.walkman.domain.repository.UserRepository
 import inu.appcenter.walkman.local.database.WalkManDatabase
 import inu.appcenter.walkman.local.repository.GaitAnalysisRepository
 import inu.appcenter.walkman.local.repository.GaitAnalysisRepositoryImpl
+import inu.appcenter.walkman.presentation.viewmodel.ProfileGaitViewModel
 import inu.appcenter.walkman.utils.SessionManager
 import javax.inject.Singleton
 
@@ -138,5 +144,35 @@ object AppModule {
         supabaseClient: SupabaseClient
     ): SupabaseGaitAnalysisRepository {
         return SupabaseGaitAnalysisRepositoryImpl(supabaseClient)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkMonitor(
+        @ApplicationContext context: Context
+    ): NetworkMonitor {
+        return NetworkMonitorImpl(context)
+    }
+
+    @Provides
+    @Singleton
+    fun providePendingUploadManager(
+        @ApplicationContext context: Context,
+        networkMonitor: NetworkMonitor,
+        storageRepository: StorageRepository,
+    ): PendingUploadManager {
+        return PendingUploadManager(
+            context,
+            networkMonitor,
+            storageRepository,
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideFeedbackRepository(
+        @ApplicationContext context: Context
+    ): FeedbackRepository {
+        return FeedbackRepositoryImpl(context)
     }
 }

@@ -279,7 +279,7 @@ fun ProfileCard(
     onDelete: () -> Unit
 ) {
     val borderColor = if (isSelected) WalkManColors.Primary else Color.Transparent
-    val backgroundColor = if (isSelected) WalkManColors.Primary.copy(alpha = 0.1f) else WalkManColors.CardBackground
+    val backgroundColor = if (isSelected) WalkManColors.CardBackground else WalkManColors.CardBackground
 
     Card(
         modifier = Modifier
@@ -307,29 +307,14 @@ fun ProfileCard(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(WalkManColors.Primary.copy(alpha = 0.1f)),
+                    .background(if (isSelected) WalkManColors.Primary.copy(alpha = 0.1f) else WalkManColors.TextSecondary.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    tint = WalkManColors.Primary
+                    tint = if (isSelected) WalkManColors.Primary else WalkManColors.TextSecondary
                 )
-                if (isSelected) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(WalkManColors.Primary.copy(alpha = 0.6f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "선택됨",
-                            tint = Color.White
-                        )
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.width(16.dp))

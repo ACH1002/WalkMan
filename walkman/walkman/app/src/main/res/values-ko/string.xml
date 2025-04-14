@@ -246,4 +246,10 @@
     <string name="logout">로그아웃</string>
     <string name="analyze_your_walking_patterns_and_improve_your_gait">GaitX로 당신의 걸음 패턴을 분석하고 개선시키세요</string>
 
+
+    <string name="network_disconnect_error">네트워크 연결 없음</string>
+
+    <string name="recording_video_mode_short">영상</string>
+    <string name="recording_pocket_mode_short">주머니</string>
+    <string name="recording_text_mode_short">글자</string>
 </resources>
