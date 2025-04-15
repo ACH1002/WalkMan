@@ -251,4 +251,20 @@
     <string name="recording_video_mode_short">Video</string>
     <string name="recording_pocket_mode_short">Pocket</string>
     <string name="recording_text_mode_short">Text</string>
+
+    <string name="network_disconnected">Network disconnected</string>
+    <string name="network_connected">Network connected</string>
+    <string name="wifi_connected">Connected to WiFi</string>
+    <string name="mobile_data_connected">Connected to mobile data</string>
+    <string name="connect_network">Connect to network</string>
+    <string name="connect_network_to_record">Please connect to network before starting recording</string>
+
+    <!-- Upload-related strings -->
+    <string name="upload_success">Data has been successfully uploaded</string>
+    <string name="upload_pending">Will be uploaded automatically when network connected</string>
+    <string name="pending_upload_completed">Pending data has been uploaded</string>
+
+    <!-- UI notification messages -->
+    <string name="pending_upload_notification">There are pending uploads</string>
+    <string name="pending_upload_count">Pending uploads: %1$d</string>
 </resources>

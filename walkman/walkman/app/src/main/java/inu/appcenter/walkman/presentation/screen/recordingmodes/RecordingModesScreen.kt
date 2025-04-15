@@ -1,5 +1,7 @@
 package inu.appcenter.walkman.presentation.screen.recordingmodes
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +15,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -33,13 +37,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.data.model.UserProfile
+import inu.appcenter.walkman.domain.model.NetworkStatus
 import inu.appcenter.walkman.domain.model.RecordingMode
+import inu.appcenter.walkman.presentation.components.NetworkStatusCard
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.CycleProgressCard
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.ModeCard
 import inu.appcenter.walkman.presentation.screen.recordingmodes.components.UserInfoCard
@@ -58,15 +66,14 @@ fun RecordingModesScreen(
     onBackPressed: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
-
+    val networkState by viewModel.networkState.collectAsState()
     val profileUiState by profileGaitViewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
-    // 모든 측정이 완료되면 결과 페이지로 자동 이동
-    LaunchedEffect(uiState.allModesCompleted) {
-        if (uiState.allModesCompleted) {
-            onNavigateToResults()
-        }
-    }
+    // 네트워크 연결 상태에 따라 측정 시작 가능 여부 결정
+    val canStartRecording = networkState is NetworkStatus.Connected
+
+    val scrollState = rememberScrollState()
 
     // 뒤로가기 처리
     BackHandler {
@@ -104,7 +111,8 @@ fun RecordingModesScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 온보딩 진행 상태 표시
@@ -130,7 +138,19 @@ fun RecordingModesScreen(
 //                        .background(WalkManColors.Primary, shape = RoundedCornerShape(6.dp))
 //                )
 //            }
+            // 네트워크 상태 표시
+            NetworkStatusCard(
+                networkState = networkState,
+                showConnectButton = networkState is NetworkStatus.Disconnected,
+                onConnectClick = {
+                    // 네트워크 설정으로 이동
+                    val intent = Intent(Settings.ACTION_WIRELESS_SETTINGS)
+                    context.startActivity(intent)
+                }
+            )
 
+            // 사용자 정보 카드
+            Spacer(modifier = Modifier.height(8.dp))
             // 사용자 정보 카드
             UserInfoCard(
                 userProfile = profileUiState.selectedProfile,
@@ -183,6 +203,19 @@ fun RecordingModesScreen(
             )
 
             Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
+
+
+            // 네트워크 연결이 안 되어 있을 경우 안내 메시지
+            if (!canStartRecording) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(id = R.string.connect_network_to_record),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = WalkManColors.Error,
+                    fontSize = 14.sp
+                )
+            }
 
             // 현재 기록 중이면 중지 버튼 표시
             if (uiState.isRecording) {

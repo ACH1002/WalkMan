@@ -53,7 +53,8 @@ class RecordingViewModel @Inject constructor(
         val allModesCompleted: Boolean = false,
         val networkError: String? = null,
         val pendingUpload: Boolean = false,
-        val pendingUploadCount: Int = 0
+        val pendingUploadCount: Int = 0,
+        val uploadCompleted: Boolean = false
     )
     // 프로필 관련 상태 추가
     private val _selectedProfile = MutableStateFlow<UserProfile?>(null)
@@ -135,17 +136,76 @@ class RecordingViewModel @Inject constructor(
             }
         }
 
+        // PendingUploadManager의 업로드 완료 이벤트 관찰
+        observePendingUploadCompletion()
+
         // 대기 중인 업로드 개수 업데이트
         updatePendingUploadCount()
     }
 
+    /**
+     * PendingUploadManager 인스턴스를 반환하는 메서드
+     * RecordingScreen에서 업로드 진행 상태를 표시하기 위해 사용
+     */
+    fun getPendingUploadManager(): PendingUploadManager {
+        return pendingUploadManager
+    }
+
+    // 기존의 observePendingUploadCompletion 메서드 수정 (collectLatest -> collect)
+    private fun observePendingUploadCompletion() {
+        viewModelScope.launch {
+            pendingUploadManager.uploadCompletionFlow.collect { completed ->
+                if (completed) {
+                    // 업로드 완료 UI 상태 업데이트
+                    _uiState.update { it.copy(
+                        isUploading = false,
+                        uploadCompleted = true,
+                        pendingUpload = false,
+                        successMessage = "대기 중이던 데이터가 성공적으로 업로드되었습니다."
+                    ) }
+
+                    _uploadState.value = UploadState.Success("대기 중이던 데이터가 성공적으로 업로드되었습니다.")
+
+                    // PendingUpload 개수 업데이트
+                    updatePendingUploadCount()
+
+                    // 성공 메시지 자동 제거 타이머 (3초)
+                    delay(3000)
+                    clearMessages()
+                    _uploadState.value = UploadState.Idle
+                }
+            }
+        }
+    }
+
+    /**
+     * 네트워크 연결 시 대기 중인 업로드 확인
+     */
+    private fun checkPendingUploads() {
+        viewModelScope.launch {
+            if (_uiState.value.pendingUpload && !_uiState.value.isUploading) {
+                _uiState.update { it.copy(
+                    isUploading = true,
+                    errorMessage = null,
+                    successMessage = null
+                ) }
+
+                _uploadState.value = UploadState.Uploading
+
+                // 명시적으로 pendingUploadManager에 처리 요청 추가
+                pendingUploadManager.processPendingUploads()
+            }
+        }
+    }
 
     /**
      * 대기 중인 업로드 개수 업데이트
      */
     private fun updatePendingUploadCount() {
+        val count = pendingUploadManager.getPendingUploadCount()
         _uiState.update { it.copy(
-            pendingUploadCount = pendingUploadManager.getPendingUploadCount()
+            pendingUploadCount = count,
+            pendingUpload = count > 0
         ) }
     }
 

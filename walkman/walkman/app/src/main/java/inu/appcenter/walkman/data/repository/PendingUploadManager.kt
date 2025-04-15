@@ -1,4 +1,3 @@
-// data/repository/PendingUploadManager.kt
 package inu.appcenter.walkman.data.repository
 
 import android.content.Context
@@ -11,6 +10,12 @@ import inu.appcenter.walkman.domain.repository.StorageRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
@@ -40,6 +45,18 @@ class PendingUploadManager @Inject constructor(
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pendingUploads = mutableListOf<PendingUpload>()
 
+    // 업로드 진행 상태 (0.0 ~ 1.0)
+    private val _uploadProgress = MutableStateFlow(0f)
+    val uploadProgress: StateFlow<Float> = _uploadProgress.asStateFlow()
+
+    // 업로드 완료 이벤트 (완료될 때 true를 emit)
+    private val _uploadCompletionFlow = MutableSharedFlow<Boolean>()
+    val uploadCompletionFlow: SharedFlow<Boolean> = _uploadCompletionFlow.asSharedFlow()
+
+    // 업로드 중 상태
+    private val _isUploading = MutableStateFlow(false)
+    val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
+
     init {
         // 앱 시작 시 저장된 대기 업로드 불러오기
         loadPendingUploads()
@@ -47,7 +64,7 @@ class PendingUploadManager @Inject constructor(
         // 네트워크 상태 모니터링
         coroutineScope.launch {
             networkMonitor.networkStatus.collect { status ->
-                if (status is NetworkStatus.Connected) {
+                if (status is NetworkStatus.Connected && !pendingUploads.isEmpty()) {
                     // 네트워크 연결 시 대기 중인 업로드 처리
                     processPendingUploads()
                 }
@@ -77,62 +94,86 @@ class PendingUploadManager @Inject constructor(
 
     /**
      * 모든 대기 업로드 처리
+     * 직접 호출하거나 네트워크 상태 변경 시 자동으로 호출 가능
      */
-    private fun processPendingUploads() {
-        if (pendingUploads.isEmpty()) return
+    fun processPendingUploads() {
+        if (pendingUploads.isEmpty()) {
+            return
+        }
 
         coroutineScope.launch {
-            Log.d(TAG, "Processing ${pendingUploads.size} pending uploads")
+            try {
+                Log.d(TAG, "Processing ${pendingUploads.size} pending uploads")
+                _isUploading.value = true
 
-            // 업로드 가능한 네트워크 상태인지 확인
-            val isUploadAllowed = networkMonitor.isUploadAllowed().first()
-            if (!isUploadAllowed) {
-                Log.d(TAG, "Upload not allowed by network settings")
-                return@launch
-            }
-
-            // 실제 인터넷 연결 가능 여부 확인
-            val isConnected = networkMonitor.isInternetReachable()
-            if (!isConnected) {
-                Log.d(TAG, "Internet not reachable")
-                return@launch
-            }
-
-            // 각 대기 업로드를 처리
-            val iterator = pendingUploads.iterator()
-            while (iterator.hasNext()) {
-                val upload = iterator.next()
-
-                try {
-                    val file = File(upload.localFilePath)
-                    if (!file.exists() || !file.isFile) {
-                        Log.e(TAG, "File not found: ${upload.localFilePath}")
-                        iterator.remove()
-                        continue
-                    }
-
-                    // 프로필 ID가 있으면 해당 프로필로 업로드, 없으면 기본 메서드 사용
-                    val fileId = if (upload.profileId.isNotEmpty()) {
-                        storageRepository.uploadFileToDrive(file)
-                    } else {
-                        storageRepository.uploadFileToDrive(file)
-                    }
-
-                    Log.d(
-                        TAG,
-                        "Successfully uploaded file to Drive: $fileId for profile: ${upload.profileId}"
-                    )
-
-                    // 성공적으로 업로드된 항목 제거
-                    iterator.remove()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to upload file: ${upload.localFilePath}", e)
-                    // 실패한 업로드는 다음 시도에서 다시 시도
+                // 업로드 가능한 네트워크 상태인지 확인
+                val isUploadAllowed = networkMonitor.isUploadAllowed().first()
+                if (!isUploadAllowed) {
+                    Log.d(TAG, "Upload not allowed by network settings")
+                    _isUploading.value = false
+                    return@launch
                 }
-            }
 
-            // 변경된 대기 업로드 목록 저장
-            savePendingUploads()
+                // 실제 인터넷 연결 가능 여부 확인
+                val isConnected = networkMonitor.isInternetReachable()
+                if (!isConnected) {
+                    Log.d(TAG, "Internet not reachable")
+                    _isUploading.value = false
+                    return@launch
+                }
+
+                var successCount = 0
+                val totalCount = pendingUploads.size
+
+                // 각 대기 업로드를 처리
+                val iterator = pendingUploads.iterator()
+                while (iterator.hasNext()) {
+                    val upload = iterator.next()
+
+                    try {
+                        val file = File(upload.localFilePath)
+                        if (!file.exists() || !file.isFile) {
+                            Log.e(TAG, "File not found: ${upload.localFilePath}")
+                            iterator.remove()
+                            continue
+                        }
+
+                        // 프로필 ID가 있으면 해당 프로필로 업로드
+                        val fileId = storageRepository.uploadFileToDrive(file, upload.profileId)
+
+                        Log.d(
+                            TAG,
+                            "Successfully uploaded file to Drive: $fileId for profile: ${upload.profileId}"
+                        )
+
+                        // 성공적으로 업로드된 항목 제거
+                        iterator.remove()
+                        successCount++
+
+                        // 진행률 업데이트
+                        _uploadProgress.value = successCount.toFloat() / totalCount
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to upload file: ${upload.localFilePath}", e)
+                        // 실패한 업로드는 다음 시도에서 다시 시도
+                    }
+                }
+
+                // 변경된 대기 업로드 목록 저장
+                savePendingUploads()
+
+                // 업로드 진행이 끝났음을 알림
+                _isUploading.value = false
+                _uploadProgress.value = 0f
+
+                // 업로드 완료 이벤트 발생 (하나 이상 성공했을 경우에만)
+                if (successCount > 0) {
+                    _uploadCompletionFlow.emit(true)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during pending uploads processing", e)
+                _isUploading.value = false
+                _uploadProgress.value = 0f
+            }
         }
     }
 

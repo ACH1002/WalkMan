@@ -71,9 +71,9 @@ import com.google.android.exoplayer2.ui.StyledPlayerView
 import inu.appcenter.walkman.R
 import inu.appcenter.walkman.domain.model.NetworkStatus
 import inu.appcenter.walkman.domain.model.RecordingMode
-import inu.appcenter.walkman.presentation.screen.recording.components.NetworkStatusCard
+import inu.appcenter.walkman.presentation.components.NetworkStatusCard
 import inu.appcenter.walkman.presentation.screen.recording.components.SensorValueRow
-import inu.appcenter.walkman.presentation.screen.recording.components.UploadStatusIndicator
+import inu.appcenter.walkman.presentation.screen.recording.components.UploadStatusSection
 import inu.appcenter.walkman.presentation.theme.WalkManColors
 import inu.appcenter.walkman.presentation.viewmodel.RecordingViewModel
 import kotlinx.coroutines.delay
@@ -350,8 +350,8 @@ fun RecordingScreen(
             NetworkStatusCard(networkState = networkState)
         }
 
-        val uploadState by viewModel.uploadState.collectAsState()
-        UploadStatusIndicator(uploadState = uploadState)
+        // 기존 UploadStatusIndicator를 UploadStatusSection으로 교체
+        UploadStatusSection(viewModel = viewModel)
 
         Column(
             modifier = Modifier
@@ -773,7 +773,6 @@ fun RecordingScreen(
                     )
                 }
             }
-
             if (uiState.isUploading) {
                 Spacer(modifier = Modifier.height(8.dp))
 
