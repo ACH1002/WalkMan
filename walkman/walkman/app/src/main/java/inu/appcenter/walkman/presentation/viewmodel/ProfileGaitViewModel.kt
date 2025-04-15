@@ -182,7 +182,7 @@ class ProfileGaitViewModel @Inject constructor(
     }
 
     // Load gait analysis for a profile
-    private fun loadGaitAnalysisForProfile(profileId: String) {
+    fun loadGaitAnalysisForProfile(profileId: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingGaitData = true, error = null) }
 

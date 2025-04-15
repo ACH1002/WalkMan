@@ -113,7 +113,7 @@ class PendingUploadManager @Inject constructor(
 
                     // 프로필 ID가 있으면 해당 프로필로 업로드, 없으면 기본 메서드 사용
                     val fileId = if (upload.profileId.isNotEmpty()) {
-                        storageRepository.uploadFileToDrive(file, upload.profileId)
+                        storageRepository.uploadFileToDrive(file)
                     } else {
                         storageRepository.uploadFileToDrive(file)
                     }

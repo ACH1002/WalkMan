@@ -314,7 +314,7 @@ class RecordingViewModel @Inject constructor(
                 // 네트워크 연결이 있는 경우 - 정상적으로 업로드 진행
                 try {
                     // 파일 업로드 (Supabase 스토리지 또는 구글 드라이브)
-                    val csvFileId = storageRepository.uploadFileToDrive(csvFile, selectedProfile.id ?: "")
+                    val csvFileId = storageRepository.uploadFileToDrive(csvFile)
 
                     // 업로드 성공 상태로 전환 - 3초 동안 유지
                     _uploadState.value = UploadState.Success("데이터가 성공적으로 업로드되었습니다.")

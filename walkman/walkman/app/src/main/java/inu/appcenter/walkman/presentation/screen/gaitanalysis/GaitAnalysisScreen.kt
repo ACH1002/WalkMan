@@ -155,7 +155,12 @@ fun UpdatedGaitAnalysisScreen(
                         )
                     }
 
-                    IconButton(onClick = { viewModel.loadUserProfiles() }) {
+                    IconButton(onClick = {
+                        viewModel.loadUserProfiles()
+                        uiState.selectedProfile?.id?.let {
+                            viewModel.loadGaitAnalysisForProfile(it)
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "새로고침",
