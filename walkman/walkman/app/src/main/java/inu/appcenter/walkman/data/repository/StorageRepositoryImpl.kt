@@ -43,7 +43,7 @@ class StorageRepositoryImpl @Inject constructor(
         val height = userProfile.height.toString().replace(" ", "")
 
         // 파일명 형식: MBTI_모드_키_날짜_프로필ID
-        val fileName = "${mbtiPrefix}_${modeText}_${height}_${timestamp}_${userProfile.id}.csv"
+        val fileName = "${mbtiPrefix}_${modeText}_${height}_${timestamp}.csv"
         val file = File(context.getExternalFilesDir(null), fileName)
 
         FileWriter(file).use { writer ->
