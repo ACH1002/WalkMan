@@ -3,7 +3,9 @@ package inu.appcenter.walkman.data.repository
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import inu.appcenter.walkman.data.repository.gaitanalysis.SupabaseGaitAnalysisRepository
 import inu.appcenter.walkman.domain.model.NetworkStatus
+import inu.appcenter.walkman.domain.model.RecordingMode
 import inu.appcenter.walkman.domain.model.RecordingSession
 import inu.appcenter.walkman.domain.repository.NetworkMonitor
 import inu.appcenter.walkman.domain.repository.StorageRepository
@@ -30,12 +32,14 @@ import javax.inject.Singleton
 
 /**
  * 네트워크 연결이 없을 때 업로드 대기 상태를 관리하는 클래스
+ * - 파일 업로드(구글 드라이브)와 데이터 분석 결과 업로드(Supabase) 모두 지원
  */
 @Singleton
 class PendingUploadManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val networkMonitor: NetworkMonitor,
-    private val storageRepository: StorageRepository
+    private val storageRepository: StorageRepository,
+    private val supabaseGaitAnalysisRepository: SupabaseGaitAnalysisRepository
 ) {
     companion object {
         private const val TAG = "PendingUploadManager"
@@ -83,13 +87,15 @@ class PendingUploadManager @Inject constructor(
             sessionId = session.id,
             localFilePath = localFile.absolutePath,
             profileId = profileId,
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            recordingMode = session.mode,
+            session = session
         )
 
         pendingUploads.add(pendingUpload)
         savePendingUploads()
 
-        Log.d(TAG, "Added pending upload: ${pendingUpload.sessionId} for profile: $profileId")
+        Log.d(TAG, "Added pending upload: ${pendingUpload.sessionId} for profile: $profileId (Mode: ${session.mode})")
     }
 
     /**
@@ -145,6 +151,25 @@ class PendingUploadManager @Inject constructor(
                             TAG,
                             "Successfully uploaded file to Drive: $fileId for profile: ${upload.profileId}"
                         )
+
+                        // VIDEO 모드인 경우 추가로 Supabase에 보행 분석 결과 업로드
+                        if (upload.recordingMode == RecordingMode.VIDEO && upload.session != null) {
+                            try {
+                                val analysisResult = supabaseGaitAnalysisRepository.analyzeAndSaveGaitData(
+                                    session = upload.session,
+                                    userProfileId = upload.profileId
+                                )
+
+                                if (analysisResult != null) {
+                                    Log.d(TAG, "Successfully uploaded gait analysis to Supabase for sessionId: ${upload.sessionId}")
+                                } else {
+                                    Log.e(TAG, "Failed to upload gait analysis to Supabase: null result")
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error uploading gait analysis to Supabase", e)
+                                // 파일 업로드는 성공했으므로 예외를 무시하고 진행
+                            }
+                        }
 
                         // 성공적으로 업로드된 항목 제거
                         iterator.remove()
@@ -238,6 +263,10 @@ class PendingUploadManager @Inject constructor(
         val sessionId: String,
         val localFilePath: String,
         val profileId: String = "", // 프로필 ID 필드 추가
-        val timestamp: Long
+        val timestamp: Long,
+        val recordingMode: RecordingMode,
+        // 세션 객체는 네트워크 연결 후 보행 분석에 필요
+        // transient 키워드로 직렬화에서 제외
+        @Transient val session: RecordingSession? = null
     ) : Serializable
 }

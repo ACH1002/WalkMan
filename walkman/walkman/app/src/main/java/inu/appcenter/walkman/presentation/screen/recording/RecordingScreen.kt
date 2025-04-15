@@ -247,8 +247,6 @@ fun RecordingScreen(
             } else {
                 // 네트워크 연결이 없거나 보류 중인 업로드가 있는 경우
                 // 메시지만 지우고 화면은 유지
-                delay(3000) // 3초 동안 성공 메시지 표시
-                viewModel.clearMessages()
                 // 사용자가 직접 뒤로가기 버튼을 눌러야 화면 이동
             }
         }
@@ -675,44 +673,6 @@ fun RecordingScreen(
                 }
             }
 
-            if (fullMeasurementCompleted && !uiState.isRecording && !uiState.isUploading && uiState.successMessage == null) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = WalkManColors.Success.copy(alpha = 0.1f)
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.recording_completed_90s),
-                            color = WalkManColors.Success,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleSmall,
-                            textAlign = TextAlign.Center
-                        )
-
-                        // 네트워크 연결 없는 경우 추가 안내 표시
-                        if (networkState is NetworkStatus.Disconnected) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = stringResource(id = R.string.recording_completed_90s),
-                                color = WalkManColors.TextSecondary,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
 
             // 측정 버튼
             Button(

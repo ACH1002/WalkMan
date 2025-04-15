@@ -374,18 +374,30 @@ class RecordingViewModel @Inject constructor(
                 // 네트워크 연결이 있는 경우 - 정상적으로 업로드 진행
                 try {
                     // 파일 업로드 (Supabase 스토리지 또는 구글 드라이브)
-                    val csvFileId = storageRepository.uploadFileToDrive(csvFile)
+                    val csvFileId = storageRepository.uploadFileToDrive(csvFile, selectedProfile.id ?: "")
+
+                    // VIDEO 모드인 경우 보행 분석 수행 및 Supabase에 저장
+                    if (session.mode == RecordingMode.VIDEO) {
+                        try {
+                            // 먼저 로컬 보행 분석 수행
+                            performGaitAnalysis(session)
+
+                            // Supabase에도 분석 결과 저장
+                            gaitAnalysisRepoSupabase.analyzeAndSaveGaitData(
+                                session = session,
+                                userProfileId = selectedProfile.id ?: ""
+                            )
+                        } catch (e: Exception) {
+                            Log.e("RecordingViewModel", "보행 분석 또는 Supabase 저장 실패", e)
+                            // 이 실패는 무시하고 계속 진행 (이미 파일은 업로드됨)
+                        }
+                    }
 
                     // 업로드 성공 상태로 전환 - 3초 동안 유지
                     _uploadState.value = UploadState.Success("데이터가 성공적으로 업로드되었습니다.")
 
                     // 측정 완료 상태 업데이트
                     updateCompletedMode(session.mode)
-
-                    // VIDEO 모드인 경우 보행 분석 수행
-                    if (session.mode == RecordingMode.VIDEO) {
-                        performGaitAnalysis(session)
-                    }
 
                     _uiState.update { it.copy(
                         isUploading = false,

@@ -160,11 +160,13 @@ object AppModule {
         @ApplicationContext context: Context,
         networkMonitor: NetworkMonitor,
         storageRepository: StorageRepository,
+        supabaseGaitAnalysisRepository: SupabaseGaitAnalysisRepository
     ): PendingUploadManager {
         return PendingUploadManager(
             context,
             networkMonitor,
             storageRepository,
+            supabaseGaitAnalysisRepository
         )
     }
 
